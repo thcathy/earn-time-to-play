@@ -1,0 +1,8 @@
+# App Store Connect
+app_identifier("com.thcathy.timebankforplay")  # Bundle ID
+apple_id("thcathy@gmail.com")                   # Your Apple ID
+team_id("DU483K8F48")                           # Developer Portal Team ID
+
+# Google Play
+json_key_file("fastlane/play-store-key.json")  # Path to Google Play API key
+package_name("com.thcathy.timebankforplay")    # Android package name

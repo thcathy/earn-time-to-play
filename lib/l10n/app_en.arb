@@ -1,0 +1,130 @@
+{
+  "@@locale": "en",
+  "appTitle": "Time Bank for Play",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "today": "Today",
+  "history": "History",
+  "analytics": "Analytics",
+  "settings": "Settings",
+  
+  "balance": "Balance",
+  "youCanPlay": "You can play!",
+  "lowBalance": "Balance is low",
+  "noPlayTime": "No play time available",
+  "minutes": "minutes",
+  "min": "min",
+  "hours": "hours",
+  
+  "todayProgress": "Today's Progress",
+  "focus": "Focus",
+  "play": "Play",
+  "delta": "Delta",
+  
+  "quickAdd": "Quick Add",
+  "stopwatch": "Stopwatch",
+  "addFocusTime": "Add Focus Time",
+  "addPlayTime": "Add Play Time",
+  "enterMinutes": "Enter minutes",
+  "add": "Add",
+  
+  "focusTimer": "Focus Timer",
+  "playTimer": "Play Timer",
+  "start": "Start",
+  "stop": "Stop",
+  "reset": "Reset",
+  "logTimeQuestion": "Log {type} Time?",
+  "@logTimeQuestion": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "trackedTimeMessage": "You tracked {time} of {type} time. Do you want to add this to your balance?",
+  "@trackedTimeMessage": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "discard": "Discard",
+  
+  "thisWeek": "This Week",
+  "thisMonth": "This Month",
+  "allTime": "All Time",
+  "noEntriesYet": "No entries yet",
+  "startTrackingMessage": "Start tracking your focus and play time!",
+  "editEntry": "Edit Entry",
+  "focusMinutes": "Focus Minutes",
+  "playMinutes": "Play Minutes",
+  "saveChanges": "Save Changes",
+  "deleteEntry": "Delete Entry",
+  "deleteEntryConfirm": "Are you sure you want to delete this entry?",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  
+  "weeklyOverview": "Weekly Overview",
+  "balanceTrend": "Balance Trend (14 Days)",
+  "timeDistribution": "Time Distribution",
+  "totalFocus": "Total Focus",
+  "totalPlay": "Total Play",
+  "avgDailyDelta": "Avg Daily Delta",
+  "positiveStreak": "Positive Streak",
+  "days": "days",
+  
+  "appearance": "Appearance",
+  "system": "System",
+  "followSystemSettings": "Follow system settings",
+  "light": "Light",
+  "alwaysLightTheme": "Always use light theme",
+  "dark": "Dark",
+  "alwaysDarkTheme": "Always use dark theme",
+  
+  "language": "Language",
+  "english": "English",
+  "traditionalChinese": "繁體中文",
+  "simplifiedChinese": "简体中文",
+  
+  "balanceSettings": "Balance Settings",
+  "startingBalance": "Starting Balance",
+  "startingBalanceDesc": "Initial balance when you started",
+  "warningThreshold": "Warning Threshold",
+  "warningThresholdDesc": "Warn when balance drops below",
+  "maxPlayPerDay": "Max Play Per Day",
+  "maxPlayPerDayDesc": "Optional daily limit (0 = unlimited)",
+  
+  "behavior": "Behavior",
+  "allowOverdraft": "Allow Overdraft",
+  "allowOverdraftDesc": "Allow play even with negative balance",
+  
+  "data": "Data",
+  "exportData": "Export Data",
+  "exportDataDesc": "Export all entries as CSV",
+  "resetAllData": "Reset All Data",
+  "resetAllDataDesc": "Delete all entries and settings",
+  "resetConfirmTitle": "Reset All Data",
+  "resetConfirmMessage": "This will permanently delete all your time entries and reset settings to defaults. This action cannot be undone.",
+  "resetButton": "Reset",
+  "dataResetSuccess": "All data has been reset",
+  
+  "about": "About",
+  "github": "GitHub",
+  "viewSourceCode": "View source code",
+  "version": "Version {version}",
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "copyright": "© 2024 Timmy Wong",
+  "madeWithLove": "Made with ❤️ in Flutter"
+}
+

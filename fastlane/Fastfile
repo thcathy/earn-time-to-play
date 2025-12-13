@@ -1,0 +1,161 @@
+# Fastlane configuration for Time Bank for Play
+# https://docs.fastlane.tools
+
+default_platform(:ios)
+
+# ==================== iOS ====================
+platform :ios do
+  desc "Build and upload to App Store Connect (TestFlight)"
+  lane :beta do
+    # Increment build number
+    increment_build_number(xcodeproj: "ios/Runner.xcodeproj")
+    
+    # Get provisioning profile
+    get_provisioning_profile(
+      app_identifier: "com.thcathy.timebankforplay",
+      readonly: true
+    )
+    
+    # Build the app
+    build_app(
+      workspace: "ios/Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store",
+      output_directory: "build/ios",
+      output_name: "TimeBankForPlay.ipa",
+      export_options: {
+        signingStyle: "manual",
+        teamID: "DU483K8F48",
+        provisioningProfiles: {
+          "com.thcathy.timebankforplay" => "com.thcathy.timebankforplay AppStore"
+        }
+      }
+    )
+    
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Build and upload to App Store (Production)"
+  lane :release do
+    # Increment build number
+    increment_build_number(xcodeproj: "ios/Runner.xcodeproj")
+    
+    # Get provisioning profile
+    get_provisioning_profile(
+      app_identifier: "com.thcathy.timebankforplay",
+      readonly: true
+    )
+    
+    # Build the app
+    build_app(
+      workspace: "ios/Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store",
+      output_directory: "build/ios",
+      output_name: "TimeBankForPlay.ipa",
+      export_options: {
+        signingStyle: "manual",
+        teamID: "DU483K8F48",
+        provisioningProfiles: {
+          "com.thcathy.timebankforplay" => "com.thcathy.timebankforplay AppStore"
+        }
+      }
+    )
+    
+    # Upload to App Store
+    upload_to_app_store(
+      skip_screenshots: true,
+      skip_metadata: false,
+      force: true,
+      precheck_include_in_app_purchases: false
+    )
+  end
+
+  desc "Build iOS app only (no upload)"
+  lane :build do
+    # Get provisioning profile
+    get_provisioning_profile(
+      app_identifier: "com.thcathy.timebankforplay",
+      readonly: true
+    )
+    
+    build_app(
+      workspace: "ios/Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store",
+      output_directory: "build/ios",
+      output_name: "TimeBankForPlay.ipa",
+      export_options: {
+        signingStyle: "manual",
+        teamID: "DU483K8F48",
+        provisioningProfiles: {
+          "com.thcathy.timebankforplay" => "com.thcathy.timebankforplay AppStore"
+        }
+      }
+    )
+  end
+end
+
+# ==================== Android ====================
+platform :android do
+  desc "Build and upload to Google Play (Internal Testing)"
+  lane :beta do
+    # Build Flutter app bundle
+    sh "cd .. && flutter build appbundle --release"
+    
+    # Upload to Play Store internal testing
+    upload_to_play_store(
+      track: "internal",
+      aab: "build/app/outputs/bundle/release/app-release.aab",
+      release_status: "draft",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Build and upload to Google Play (Production)"
+  lane :release do
+    # Build Flutter app bundle
+    sh "cd .. && flutter build appbundle --release"
+    
+    # Upload to Play Store production
+    upload_to_play_store(
+      track: "production",
+      aab: "build/app/outputs/bundle/release/app-release.aab",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Build Android app only (no upload)"
+  lane :build do
+    sh "cd .. && flutter build appbundle --release"
+  end
+end
+
+# ==================== All Platforms ====================
+desc "Build all platforms"
+lane :build_all do
+  sh "cd .. && flutter clean && flutter pub get"
+  
+  # Build iOS
+  build_app(
+    workspace: "ios/Runner.xcworkspace",
+    scheme: "Runner",
+    export_method: "app-store",
+    output_directory: "build/ios",
+    output_name: "TimeBankForPlay.ipa"
+  )
+  
+  # Build Android
+  sh "cd .. && flutter build appbundle --release"
+  
+  puts "✅ All builds complete!"
+  puts "iOS: build/ios/TimeBankForPlay.ipa"
+  puts "Android: build/app/outputs/bundle/release/app-release.aab"
+end
