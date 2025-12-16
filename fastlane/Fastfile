@@ -29,7 +29,9 @@ platform :ios do
         provisioningProfiles: {
           "com.thcathy.timebankforplay" => "com.thcathy.timebankforplay AppStore"
         }
-      }
+      },
+      # Add xcargs to disable bitcode if it's causing issues
+      xcargs: "ENABLE_BITCODE=NO"
     )
     
     # Upload to TestFlight
@@ -62,15 +64,17 @@ platform :ios do
         provisioningProfiles: {
           "com.thcathy.timebankforplay" => "com.thcathy.timebankforplay AppStore"
         }
-      }
+      },
+      # Add xcargs to disable bitcode if it's causing issues
+      xcargs: "ENABLE_BITCODE=NO"
     )
     
     # Upload to App Store
-    upload_to_app_store(
-      skip_screenshots: true,
-      skip_metadata: true,
-      force: true,
-      precheck_include_in_app_purchases: false
+    # We use upload_to_testflight even for release because it is more reliable for uploading the binary.
+    # You can promote the build to App Store from TestFlight later.
+    upload_to_testflight(
+      ipa: "build/ios/TimeBankForPlay.ipa",
+      skip_waiting_for_build_processing: true
     )
   end
 
@@ -126,6 +130,7 @@ platform :android do
     upload_to_play_store(
       track: "production",
       aab: "build/app/outputs/bundle/release/app-release.aab",
+      release_status: "draft",
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true

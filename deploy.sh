@@ -26,12 +26,7 @@ echo ""
 echo "🔨 Building Flutter web app (release mode)..."
 flutter build web --release --no-wasm-dry-run
 
-# Step 4: Copy privacy policy to build folder
-echo ""
-echo "📄 Adding privacy policy..."
-cp privacy-policy.html "$BUILD_DIR/"
-
-# Step 5: Deploy to Cloudflare Pages
+# Step 4: Deploy to Cloudflare Pages
 echo ""
 echo "☁️  Deploying to Cloudflare Pages..."
 wrangler pages deploy "$BUILD_DIR" --project-name="$PROJECT_NAME"

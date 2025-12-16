@@ -1,7 +1,7 @@
 name: time_bank_for_play
 description: A Flutter app that helps gamers balance productivity with entertainment by tracking focus time vs play time.
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.0+7
 # Author: Timmy Wong <thcathy@gmail.com>
 # Repository: https://github.com/thcathy/time-bank-for-play
 
