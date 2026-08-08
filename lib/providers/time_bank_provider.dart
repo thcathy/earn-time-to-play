@@ -119,6 +119,20 @@ class TimeBankState {
 
     return streak;
   }
+
+  /// Consecutive days with any focus or play logged (habit streak).
+  int get trackingStreak {
+    final activeDates = entries
+        .where((e) => e.learningMinutes > 0 || e.gamingMinutes > 0)
+        .map((e) => e.date);
+    return TimeUtils.calculateTrackingStreak(activeDates);
+  }
+
+  /// Whether the user has logged any time today.
+  bool get hasLoggedToday {
+    final today = todayEntry;
+    return today.learningMinutes > 0 || today.gamingMinutes > 0;
+  }
 }
 
 /// Provider for the time bank state

@@ -4,8 +4,8 @@
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FAFAF9",
-    "theme_color": "#22C55E",
-    "description": "Balance productivity with entertainment",
+    "theme_color": "#4B8BD4",
+    "description": "Focus to earn play time. Track study vs games, keep a streak, and balance productivity with entertainment.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

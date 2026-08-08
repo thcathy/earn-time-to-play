@@ -6,6 +6,11 @@ class AppConstants {
   static const String entriesBoxName = 'day_entries';
   static const String settingsKey = 'app_settings';
   static const String themeKey = 'theme_mode';
+  static const String onboardingCompletedKey = 'onboarding_completed';
+
+  // Growth / acquisition
+  static const String webAppUrl = 'https://earn-time-to-play.pages.dev';
+  static const String githubUrl = 'https://github.com/thcathy/earn-time-to-play';
 
   // Default values
   static const int defaultStartingBalance = 0;
