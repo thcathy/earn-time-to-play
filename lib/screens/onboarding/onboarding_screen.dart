@@ -171,22 +171,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     }),
                   ),
                   const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _next,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: focusColor,
+                  FilledButton(
+                    onPressed: _next,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 28,
+                        vertical: 14,
                       ),
-                      child: Text(
-                        _page == _pageCount - 1
-                            ? (l10n?.getStarted ?? 'Get started')
-                            : (l10n?.next ?? 'Next'),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
+                      backgroundColor: focusColor,
+                    ),
+                    child: Text(
+                      _page == _pageCount - 1
+                          ? (l10n?.getStarted ?? 'Get started')
+                          : (l10n?.next ?? 'Next'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
                       ),
                     ),
                   ),
