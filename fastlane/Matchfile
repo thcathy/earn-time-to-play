@@ -1,9 +1,16 @@
-# Fastlane Match configuration for iOS code signing
+# Fastlane Match — shared signing certs/profiles
 # https://docs.fastlane.tools/actions/match/
+#
+# One-time bootstrap (on a Mac with Apple access):
+#   1. Create a private git repo for certificates
+#   2. Set MATCH_GIT_URL + MATCH_PASSWORD in fastlane/.env
+#   3. Run: bundle exec fastlane ios sync_certs
+#
+# Until MATCH_GIT_URL is set, lanes fall back to Xcode Automatic Signing.
 
-# Uncomment and configure if you want to use Match for code signing
-# git_url("https://github.com/thcathy/certificates")
-# storage_mode("git")
-# type("appstore")
-# app_identifier(["com.thcathy.earntimetoplay"])
-# username("thcathy@gmail.com")
+git_url(ENV.fetch("MATCH_GIT_URL", ""))
+storage_mode(ENV.fetch("MATCH_STORAGE_MODE", "git"))
+type("appstore")
+app_identifier([ENV.fetch("APP_IDENTIFIER", "com.thcathy.earntimetoplay")])
+username(ENV.fetch("APPLE_ID", "thcathy@gmail.com"))
+team_id(ENV.fetch("APPLE_TEAM_ID", "DU483K8F48"))

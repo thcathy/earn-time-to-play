@@ -1,80 +1,254 @@
-# Fastlane configuration for EarnTimeToPlay
+# Fastlane — Earn Time To Play
 # https://docs.fastlane.tools
+#
+# iOS:
+#   bundle exec fastlane ios beta      # build + TestFlight
+#   bundle exec fastlane ios release   # build + App Store (metadata + optional submit)
+#   bundle exec fastlane ios submit    # submit latest TestFlight build for review
+#   bundle exec fastlane ios sync_certs
+#
+# Required secrets: see fastlane/env.example → copy to fastlane/.env (gitignored)
 
+opt_out_usage
 default_platform(:ios)
+
+APP_IDENTIFIER = ENV.fetch("APP_IDENTIFIER", "com.thcathy.earntimetoplay")
+IPA_PATH = "build/ios/EarnTimeToPlay.ipa"
+WORKSPACE = "ios/Runner.xcworkspace"
+XCODEPROJ = "ios/Runner.xcodeproj"
+SCHEME = "Runner"
+
+# ---------- helpers ----------
+
+def flutter_root
+  File.expand_path("..", __dir__)
+end
+
+def prepare_flutter_ios!
+  sh("cd \"#{flutter_root}\" && flutter pub get")
+  # Fastlane may inject GEM_* that breaks system CocoaPods — clear them for pod install
+  sh("cd \"#{flutter_root}/ios\" && env -u GEM_HOME -u GEM_PATH -u BUNDLE_GEMFILE pod install")
+end
+
+def app_store_api_key
+  key_id = ENV["APP_STORE_CONNECT_API_KEY_ID"] || ENV["ASC_KEY_ID"]
+  issuer_id = ENV["APP_STORE_CONNECT_API_ISSUER_ID"] || ENV["ASC_ISSUER_ID"]
+  key_path = ENV["APP_STORE_CONNECT_API_KEY_PATH"] || ENV["ASC_KEY_PATH"]
+  key_content = ENV["APP_STORE_CONNECT_API_KEY_CONTENT"] || ENV["ASC_KEY_CONTENT"]
+
+  if key_id.to_s.empty? || issuer_id.to_s.empty?
+    UI.message("No App Store Connect API key configured — falling back to Apple ID session login")
+    return nil
+  end
+
+  if key_content.to_s.empty? && (key_path.to_s.empty? || !File.exist?(key_path))
+    UI.user_error!(
+      "ASC API key id/issuer set, but key file/content missing. " \
+      "Set APP_STORE_CONNECT_API_KEY_PATH or APP_STORE_CONNECT_API_KEY_CONTENT."
+    )
+  end
+
+  app_store_connect_api_key(
+    key_id: key_id,
+    issuer_id: issuer_id,
+    key_filepath: key_content.to_s.empty? ? key_path : nil,
+    key_content: key_content.to_s.empty? ? nil : key_content.gsub("\\n", "\n"),
+    duration: 1200,
+    in_house: false
+  )
+end
+
+def use_match?
+  !ENV["MATCH_GIT_URL"].to_s.empty?
+end
+
+def sync_signing!(readonly: is_ci)
+  return unless use_match?
+
+  match(
+    type: "appstore",
+    app_identifier: APP_IDENTIFIER,
+    readonly: readonly,
+    api_key: app_store_api_key,
+    git_url: ENV["MATCH_GIT_URL"],
+    git_basic_authorization: ENV["MATCH_GIT_BASIC_AUTHORIZATION"],
+    keychain_name: ENV["MATCH_KEYCHAIN_NAME"],
+    keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"]
+  )
+end
+
+def build_ios_ipa!
+  prepare_flutter_ios!
+  sync_signing!(readonly: is_ci)
+
+  # Prefer Flutter marketing/build from pubspec (e.g. 1.0.1+12)
+  if ENV["INCREMENT_BUILD_NUMBER"] == "true"
+    increment_build_number(xcodeproj: XCODEPROJ)
+  end
+
+  gym_options = {
+    workspace: WORKSPACE,
+    scheme: SCHEME,
+    configuration: "Release",
+    export_method: "app-store",
+    output_directory: "build/ios",
+    output_name: "EarnTimeToPlay.ipa",
+    clean: true,
+    silent: false
+  }
+
+  if use_match?
+    gym_options[:export_options] = {
+      method: "app-store",
+      signingStyle: "manual",
+      teamID: ENV.fetch("APPLE_TEAM_ID", "DU483K8F48"),
+      provisioningProfiles: {
+        APP_IDENTIFIER => ENV.fetch(
+          "MATCH_PROVISIONING_PROFILE_NAME",
+          "match AppStore #{APP_IDENTIFIER}"
+        )
+      }
+    }
+  else
+    UI.important("MATCH_GIT_URL not set — using Xcode Automatic Signing")
+    gym_options[:xcargs] = "ENABLE_BITCODE=NO -allowProvisioningUpdates"
+    gym_options[:export_options] = {
+      method: "app-store",
+      signingStyle: "automatic",
+      teamID: ENV.fetch("APPLE_TEAM_ID", "DU483K8F48")
+    }
+  end
+
+  build_app(**gym_options)
+end
+
+def common_deliver_options(api_key)
+  {
+    api_key: api_key,
+    ipa: IPA_PATH,
+    app_identifier: APP_IDENTIFIER,
+    force: true,
+    run_precheck_before_submit: true,
+    precheck_include_in_app_purchases: false,
+    reject_if_possible: true,
+    submission_information: {
+      add_id_info_uses_idfa: false,
+      export_compliance_uses_encryption: false,
+      export_compliance_is_exempt: false,
+      export_compliance_contains_third_party_cryptography: false,
+      export_compliance_contains_proprietary_cryptography: false,
+      content_rights_contains_third_party_content: false,
+      content_rights_has_rights: true
+    }
+  }
+end
 
 # ==================== iOS ====================
 platform :ios do
-  desc "Build and upload to App Store Connect (TestFlight)"
-  lane :beta do
-    # Ensure Flutter deps + CocoaPods are in sync before archiving
-    sh "cd .. && flutter pub get"
-    # Run CocoaPods with a clean RubyGems env (Fastlane may set GEM_PATH and break `pod`)
-    sh "cd ../ios && env -u GEM_HOME -u GEM_PATH -u BUNDLE_GEMFILE pod install"
+  before_all do
+    setup_ci if ENV["CI"]
+  end
 
-    # Increment build number
-    increment_build_number(xcodeproj: "ios/Runner.xcodeproj")
-    
-    # Build the app
-    build_app(
-      workspace: "ios/Runner.xcworkspace",
-      scheme: "Runner",
-      export_method: "app-store",
-      output_directory: "build/ios",
-      output_name: "EarnTimeToPlay.ipa",
-      # Automatic signing (let Xcode manage profiles/certs)
-      xcargs: "ENABLE_BITCODE=NO -allowProvisioningUpdates"
-    )
-    
-    # Upload to TestFlight
-    upload_to_testflight(
-      skip_waiting_for_build_processing: true
+  desc "Create/update App Store certs & profiles via match (run once / when expired)"
+  lane :sync_certs do
+    UI.user_error!("Set MATCH_GIT_URL in fastlane/.env first") unless use_match?
+    match(
+      type: "appstore",
+      app_identifier: APP_IDENTIFIER,
+      readonly: false,
+      api_key: app_store_api_key,
+      force_for_new_devices: true
     )
   end
 
-  desc "Build and upload to App Store (Production)"
-  lane :release do
-    # Ensure Flutter deps + CocoaPods are in sync before archiving
-    sh "cd .. && flutter pub get"
-    # Run CocoaPods with a clean RubyGems env (Fastlane may set GEM_PATH and break `pod`)
-    sh "cd ../ios && env -u GEM_HOME -u GEM_PATH -u BUNDLE_GEMFILE pod install"
-
-    # Increment build number
-    increment_build_number(xcodeproj: "ios/Runner.xcodeproj")
-    
-    # Build the app
-    build_app(
-      workspace: "ios/Runner.xcworkspace",
-      scheme: "Runner",
-      export_method: "app-store",
-      output_directory: "build/ios",
-      output_name: "EarnTimeToPlay.ipa",
-      # Automatic signing (let Xcode manage profiles/certs)
-      xcargs: "ENABLE_BITCODE=NO -allowProvisioningUpdates"
-    )
-    
-    # Upload to App Store
-    # We use upload_to_testflight even for release because it is more reliable for uploading the binary.
-    # You can promote the build to App Store from TestFlight later.
-    upload_to_testflight(
-      ipa: "build/ios/EarnTimeToPlay.ipa",
-      skip_waiting_for_build_processing: true
-    )
-  end
-
-  desc "Build iOS app only (no upload)"
+  desc "Build IPA only (no upload)"
   lane :build do
-    # Ensure Flutter deps + CocoaPods are in sync before archiving
-    sh "cd .. && flutter pub get"
-    # Run CocoaPods with a clean RubyGems env (Fastlane may set GEM_PATH and break `pod`)
-    sh "cd ../ios && env -u GEM_HOME -u GEM_PATH -u BUNDLE_GEMFILE pod install"
+    build_ios_ipa!
+    UI.success("IPA ready at #{IPA_PATH}")
+  end
 
-    build_app(
-      workspace: "ios/Runner.xcworkspace",
-      scheme: "Runner",
-      export_method: "app-store",
-      output_directory: "build/ios",
-      output_name: "EarnTimeToPlay.ipa"
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    api_key = app_store_api_key
+    build_ios_ipa!
+
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: IPA_PATH,
+      app_identifier: APP_IDENTIFIER,
+      skip_waiting_for_build_processing: ENV.fetch("SKIP_WAITING_FOR_BUILD_PROCESSING", "true") == "true",
+      distribute_external: false,
+      notify_external_testers: false,
+      changelog: ENV["TESTFLIGHT_CHANGELOG"]
+    )
+  end
+
+  desc "Build, upload metadata + binary to App Store Connect, optionally submit for review"
+  lane :release do
+    api_key = app_store_api_key
+    build_ios_ipa!
+
+    submit = ENV.fetch("SUBMIT_FOR_REVIEW", "true") == "true"
+    auto_release = ENV.fetch("AUTOMATIC_RELEASE", "false") == "true"
+    skip_screenshots = ENV.fetch("SKIP_SCREENSHOTS", "true") == "true"
+    skip_metadata = ENV.fetch("SKIP_METADATA", "false") == "true"
+
+    options = common_deliver_options(api_key).merge(
+      submit_for_review: submit,
+      automatic_release: auto_release,
+      phased_release: ENV.fetch("PHASED_RELEASE", "true") == "true",
+      skip_screenshots: skip_screenshots,
+      skip_metadata: skip_metadata,
+      metadata_path: "fastlane/metadata",
+      screenshots_path: "fastlane/screenshots"
+    )
+
+    upload_to_app_store(**options)
+
+    if submit
+      UI.success("Uploaded and submitted for App Store review")
+    else
+      UI.success("Uploaded to App Store Connect (not submitted). Set SUBMIT_FOR_REVIEW=true to submit.")
+    end
+  end
+
+  desc "Submit the latest processing/ready build for App Store review (no rebuild)"
+  lane :submit do
+    api_key = app_store_api_key
+    upload_to_app_store(
+      api_key: api_key,
+      app_identifier: APP_IDENTIFIER,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: ENV.fetch("SKIP_METADATA", "false") == "true",
+      submit_for_review: true,
+      automatic_release: ENV.fetch("AUTOMATIC_RELEASE", "false") == "true",
+      phased_release: ENV.fetch("PHASED_RELEASE", "true") == "true",
+      force: true,
+      run_precheck_before_submit: true,
+      precheck_include_in_app_purchases: false,
+      submission_information: {
+        add_id_info_uses_idfa: false,
+        export_compliance_uses_encryption: false,
+        content_rights_contains_third_party_content: false,
+        content_rights_has_rights: true
+      }
+    )
+  end
+
+  desc "Upload metadata only (descriptions, privacy URL, etc.)"
+  lane :metadata do
+    api_key = app_store_api_key
+    upload_to_app_store(
+      api_key: api_key,
+      app_identifier: APP_IDENTIFIER,
+      skip_binary_upload: true,
+      skip_screenshots: ENV.fetch("SKIP_SCREENSHOTS", "true") == "true",
+      skip_metadata: false,
+      submit_for_review: false,
+      force: true,
+      metadata_path: "fastlane/metadata",
+      screenshots_path: "fastlane/screenshots"
     )
   end
 end
@@ -83,10 +257,7 @@ end
 platform :android do
   desc "Build and upload to Google Play (Internal Testing)"
   lane :beta do
-    # Build Flutter app bundle
-    sh "cd .. && flutter build appbundle --release"
-    
-    # Upload to Play Store internal testing
+    sh("cd \"#{flutter_root}\" && flutter build appbundle --release")
     upload_to_play_store(
       track: "internal",
       aab: "build/app/outputs/bundle/release/app-release.aab",
@@ -97,12 +268,9 @@ platform :android do
     )
   end
 
-  desc "Build and upload to Google Play (Production)"
+  desc "Build and upload to Google Play (Production draft)"
   lane :release do
-    # Build Flutter app bundle
-    sh "cd .. && flutter build appbundle --release"
-    
-    # Upload to Play Store production
+    sh("cd \"#{flutter_root}\" && flutter build appbundle --release")
     upload_to_play_store(
       track: "production",
       aab: "build/app/outputs/bundle/release/app-release.aab",
@@ -115,28 +283,15 @@ platform :android do
 
   desc "Build Android app only (no upload)"
   lane :build do
-    sh "cd .. && flutter build appbundle --release"
+    sh("cd \"#{flutter_root}\" && flutter build appbundle --release")
   end
 end
 
-# ==================== All Platforms ====================
-desc "Build all platforms"
+desc "Build iOS IPA + Android AAB (no upload)"
 lane :build_all do
-  sh "cd .. && flutter clean && flutter pub get"
-  
-  # Build iOS
-  build_app(
-    workspace: "ios/Runner.xcworkspace",
-    scheme: "Runner",
-    export_method: "app-store",
-    output_directory: "build/ios",
-    output_name: "EarnTimeToPlay.ipa"
-  )
-  
-  # Build Android
-  sh "cd .. && flutter build appbundle --release"
-  
-  puts "✅ All builds complete!"
-  puts "iOS: build/ios/EarnTimeToPlay.ipa"
-  puts "Android: build/app/outputs/bundle/release/app-release.aab"
+  sh("cd \"#{flutter_root}\" && flutter clean && flutter pub get")
+  build_ios_ipa!
+  sh("cd \"#{flutter_root}\" && flutter build appbundle --release")
+  UI.success("iOS: #{IPA_PATH}")
+  UI.success("Android: build/app/outputs/bundle/release/app-release.aab")
 end

@@ -84,22 +84,67 @@ It builds `build/web`, copies `privacy-policy.html`, then deploys via Wrangler.
 
 ## Release (Mobile)
 
-This repo includes Fastlane lanes in `fastlane/Fastfile`:
+### iOS App Store (full pipeline)
+
+Fastlane can build, upload metadata, push the binary, and submit for review.
+
+**One-time setup (Mac with Xcode)**
+
+1. Create the app in [App Store Connect](https://appstoreconnect.apple.com) with bundle ID `com.thcathy.earntimetoplay` (if it does not exist yet).
+2. Create an **App Store Connect API key** (Users and Access → Integrations → App Store Connect API) with App Manager access. Download the `.p8` file.
+3. Copy env template and fill secrets:
+   ```bash
+   cp fastlane/env.example fastlane/.env
+   # set APP_STORE_CONNECT_API_KEY_ID / ISSUER_ID / KEY_PATH
+   ```
+4. Install Ruby deps:
+   ```bash
+   bundle install
+   ```
+5. **Signing (pick one)**
+   - *Automatic (default):* leave `MATCH_GIT_URL` empty; Xcode manages profiles (`-allowProvisioningUpdates`).
+   - *Match (recommended for CI):* create a private certs repo, set `MATCH_GIT_URL` + `MATCH_PASSWORD`, then:
+     ```bash
+     bundle exec fastlane ios sync_certs
+     ```
+6. **Screenshots:** first submission needs screenshots in App Store Connect, or under `fastlane/screenshots/` with `SKIP_SCREENSHOTS=false`. See `fastlane/screenshots/README.md`.
+7. Update `fastlane/metadata/review_information/phone_number.txt` with a real contact number.
+
+**Commands**
 
 ```bash
-# Android
-fastlane android beta
-fastlane android release
+# Build IPA only
+bundle exec fastlane ios build
+# or
+./build-ios.sh
 
-# iOS
-fastlane ios build
-fastlane ios beta
-fastlane ios release
+# TestFlight
+bundle exec fastlane ios beta
+./build-ios.sh beta
+
+# App Store: upload binary + metadata and submit for review
+bundle exec fastlane ios release
+./build-ios.sh release
+
+# Submit latest uploaded build (no rebuild)
+bundle exec fastlane ios submit
+
+# Metadata only
+bundle exec fastlane ios metadata
 ```
 
-Notes:
-- **Android**: while the app is still a **Draft app** in Play Console, internal uploads must use `release_status: "draft"` (already configured in `android beta`).
-- **iOS**: you must update identifiers/team/profile names in `fastlane/*` to match your Apple Developer setup if you fork this repo.
+Useful `.env` knobs: `SUBMIT_FOR_REVIEW`, `AUTOMATIC_RELEASE`, `PHASED_RELEASE`, `SKIP_SCREENSHOTS`, `SKIP_METADATA`.
+
+Store listing copy lives in `fastlane/metadata/` (en-US, zh-Hant, zh-Hans).
+
+### Android
+
+```bash
+bundle exec fastlane android beta     # Play internal (draft)
+bundle exec fastlane android release  # Play production (draft)
+```
+
+While the Play app is still a **Draft app**, uploads use `release_status: "draft"` (already configured).
 
 ## Secrets / signing (do not commit)
 
@@ -107,9 +152,10 @@ These are intentionally gitignored:
 - `android/key.properties`
 - `android/*.jks` (e.g. `android/upload-keystore.jks`)
 - `fastlane/play-store-key.json`
-- `*.p12`, `*.mobileprovision`, `*.cer`, `*.certSigningRequest`
+- `fastlane/.env`
+- `*.p8`, `*.p12`, `*.mobileprovision`, `*.cer`, `*.certSigningRequest`
 
-See `android/key.properties.template` for the expected format.
+See `android/key.properties.template` and `fastlane/env.example` for the expected format.
 
 ## Project Structure
 

@@ -1,0 +1,3 @@
+Earn Time To Play is a local-first focus/play time tracker. No login is required.
+To review: open the app, complete the short onboarding, add Focus minutes with Quick Add or the stopwatch, then add Play minutes from the earned balance.
+All data stays on device. Privacy policy: https://earn-time-to-play.pages.dev/privacy-policy.html

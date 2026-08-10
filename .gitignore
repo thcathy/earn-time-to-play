@@ -71,10 +71,14 @@ ios/Flutter/ephemeral/
 # Fastlane
 fastlane/report.xml
 fastlane/Preview.html
-fastlane/screenshots
+fastlane/screenshots/*
+!fastlane/screenshots/README.md
 fastlane/test_output
 fastlane/play-store-key.json
-fastlane/.env*
+fastlane/.env
+fastlane/.env.*
+!fastlane/env.example
+*.p8
 
 # Ruby
 .bundle/
