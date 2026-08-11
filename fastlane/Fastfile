@@ -3,6 +3,41 @@
 
 default_platform(:ios)
 
+# ---------- Android helpers ----------
+
+def flutter_root
+  File.expand_path("..", __dir__)
+end
+
+def android_aab_path
+  File.join(flutter_root, "build/app/outputs/bundle/release/app-release.aab")
+end
+
+def prepare_flutter_android!
+  sh("cd \"#{flutter_root}\" && flutter pub get")
+end
+
+def build_android_aab!
+  prepare_flutter_android!
+  sh("cd \"#{flutter_root}\" && flutter build appbundle --release")
+  UI.user_error!("AAB not found at #{android_aab_path}") unless File.exist?(android_aab_path)
+end
+
+def play_store_upload_options(overrides = {})
+  options = {
+    package_name: ENV.fetch("ANDROID_PACKAGE_NAME", "com.thcathy.earntimetoplay"),
+    metadata_path: "fastlane/metadata/android",
+    skip_upload_apk: true,
+    skip_upload_metadata: ENV.fetch("SKIP_UPLOAD_METADATA", "false") == "true",
+    skip_upload_images: ENV.fetch("SKIP_UPLOAD_IMAGES", "true") == "true",
+    skip_upload_screenshots: ENV.fetch("SKIP_UPLOAD_SCREENSHOTS", "true") == "true",
+    skip_upload_changelogs: ENV.fetch("SKIP_UPLOAD_CHANGELOGS", "false") == "true",
+    validate_only: ENV.fetch("PLAY_VALIDATE_ONLY", "false") == "true"
+  }
+  options[:json_key] = ENV["PLAY_STORE_JSON_KEY"] if ENV["PLAY_STORE_JSON_KEY"] && !ENV["PLAY_STORE_JSON_KEY"].empty?
+  options.merge(overrides)
+end
+
 # ==================== iOS ====================
 platform :ios do
   desc "Build and upload to App Store Connect (TestFlight)"
@@ -81,41 +116,83 @@ end
 
 # ==================== Android ====================
 platform :android do
-  desc "Build and upload to Google Play (Internal Testing)"
-  lane :beta do
-    # Build Flutter app bundle
-    sh "cd .. && flutter build appbundle --release"
-    
-    # Upload to Play Store internal testing
-    upload_to_play_store(
-      track: "internal",
-      aab: "build/app/outputs/bundle/release/app-release.aab",
-      release_status: "draft",
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true
-    )
-  end
-
-  desc "Build and upload to Google Play (Production)"
-  lane :release do
-    # Build Flutter app bundle
-    sh "cd .. && flutter build appbundle --release"
-    
-    # Upload to Play Store production
-    upload_to_play_store(
-      track: "production",
-      aab: "build/app/outputs/bundle/release/app-release.aab",
-      release_status: "draft",
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true
-    )
-  end
-
-  desc "Build Android app only (no upload)"
+  desc "Build release AAB only (no upload)"
   lane :build do
-    sh "cd .. && flutter build appbundle --release"
+    build_android_aab!
+    UI.success("AAB ready at #{android_aab_path}")
+  end
+
+  desc "Validate Play Store metadata + AAB (dry run, no upload)"
+  lane :validate do
+    build_android_aab!
+    upload_to_play_store(
+      **play_store_upload_options(
+        aab: android_aab_path,
+        track: ENV.fetch("PLAY_TRACK", "internal"),
+        release_status: ENV.fetch("PLAY_RELEASE_STATUS", "draft"),
+        validate_only: true
+      )
+    )
+  end
+
+  desc "Upload store listing metadata only (no binary)"
+  lane :metadata do
+    upload_to_play_store(
+      **play_store_upload_options(
+        skip_upload_aab: true,
+        skip_upload_metadata: false,
+        skip_upload_changelogs: false
+      )
+    )
+    UI.success("Play Store metadata uploaded")
+  end
+
+  desc "Build and upload to Google Play Internal Testing"
+  lane :beta do
+    build_android_aab!
+    upload_to_play_store(
+      **play_store_upload_options(
+        aab: android_aab_path,
+        track: ENV.fetch("PLAY_TRACK", "internal"),
+        release_status: ENV.fetch("PLAY_RELEASE_STATUS", "draft")
+      )
+    )
+    UI.success("Uploaded to Play track: #{ENV.fetch('PLAY_TRACK', 'internal')}")
+  end
+
+  desc "Build and upload to Google Play Production (metadata + AAB)"
+  lane :release do
+    build_android_aab!
+    track = ENV.fetch("PLAY_TRACK", "production")
+    status = ENV.fetch("PLAY_RELEASE_STATUS", "draft")
+    rollout = ENV["PLAY_ROLLOUT"]
+
+    options = play_store_upload_options(
+      aab: android_aab_path,
+      track: track,
+      release_status: status
+    )
+    options[:rollout] = rollout if rollout && !rollout.empty?
+
+    upload_to_play_store(**options)
+    UI.success("Uploaded to Play #{track} (#{status})")
+    if status == "draft"
+      UI.important("Release saved as draft — finish review in Play Console or set PLAY_RELEASE_STATUS=completed")
+    end
+  end
+
+  desc "Promote latest internal/closed build to production (no rebuild)"
+  lane :promote do
+    upload_to_play_store(
+      **play_store_upload_options(
+        skip_upload_aab: true,
+        track: ENV.fetch("PLAY_PROMOTE_FROM", "internal"),
+        track_promote_to: ENV.fetch("PLAY_PROMOTE_TO", "production"),
+        release_status: ENV.fetch("PLAY_RELEASE_STATUS", "draft"),
+        version_code: ENV["PLAY_VERSION_CODE"]&.to_i
+      )
+    )
+    UI.success("Promoted to #{ENV.fetch('PLAY_PROMOTE_TO', 'production')}")
   end
 end
 

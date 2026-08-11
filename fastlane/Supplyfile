@@ -1,0 +1,9 @@
+# Google Play (supply) defaults
+# https://docs.fastlane.tools/actions/upload_to_play_store/
+
+json_key_file ENV.fetch("PLAY_STORE_JSON_KEY", "fastlane/play-store-key.json")
+package_name ENV.fetch("ANDROID_PACKAGE_NAME", "com.thcathy.earntimetoplay")
+metadata_path "./metadata/android"
+
+skip_upload_apk true
+skip_upload_aab true

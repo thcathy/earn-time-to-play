@@ -4,5 +4,5 @@ apple_id("thcathy@gmail.com")                   # Your Apple ID
 team_id("DU483K8F48")                           # Developer Portal Team ID
 
 # Google Play
-json_key_file("fastlane/play-store-key.json")  # Path to Google Play API key
-package_name("com.thcathy.earntimetoplay")    # Android package name
+json_key_file(ENV.fetch("PLAY_STORE_JSON_KEY", "fastlane/play-store-key.json"))
+package_name(ENV.fetch("ANDROID_PACKAGE_NAME", "com.thcathy.earntimetoplay"))

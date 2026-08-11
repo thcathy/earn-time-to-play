@@ -84,22 +84,66 @@ It builds `build/web`, copies `privacy-policy.html`, then deploys via Wrangler.
 
 ## Release (Mobile)
 
-This repo includes Fastlane lanes in `fastlane/Fastfile`:
+### Android — Google Play (full pipeline)
+
+Fastlane can build a signed AAB, upload listing metadata, changelogs, and push to a Play track.
+
+**One-time setup**
+
+1. Create the app in [Google Play Console](https://play.google.com/console) with package `com.thcathy.earntimetoplay`.
+2. **Signing:** generate an upload keystore and `android/key.properties`:
+   ```bash
+   keytool -genkey -v -keystore android/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   cp android/key.properties.template android/key.properties
+   ```
+3. **Play API access:** Google Cloud → create service account → grant Play Console access (Release manager) → download JSON key as `fastlane/play-store-key.json` (see `fastlane/play-store-key.json.example`).
+4. Configure release env:
+   ```bash
+   cp fastlane/env.example fastlane/.env
+   bundle install
+   ```
+5. **Store assets:** first submission needs screenshots + feature graphic in Play Console, or under `fastlane/metadata/android/.../images/` with `SKIP_UPLOAD_SCREENSHOTS=false` (see `fastlane/metadata/android/images/README.md`).
+
+**Commands**
 
 ```bash
-# Android
-fastlane android beta
-fastlane android release
+# Build AAB only
+./build-android.sh
+bundle exec fastlane android build
 
-# iOS
+# Internal testing (default PLAY_TRACK=internal, PLAY_RELEASE_STATUS=draft)
+./build-android.sh beta
+bundle exec fastlane android beta
+
+# Production upload + metadata
+./build-android.sh release
+bundle exec fastlane android release
+
+# Listing / changelogs only
+bundle exec fastlane android metadata
+
+# Dry-run validation (no upload)
+PLAY_VALIDATE_ONLY=true bundle exec fastlane android validate
+
+# Promote internal build → production (no rebuild)
+bundle exec fastlane android promote
+```
+
+Useful `.env` knobs: `PLAY_TRACK`, `PLAY_RELEASE_STATUS` (`draft` while the Play app is still a Draft app), `PLAY_ROLLOUT`, `SKIP_UPLOAD_*`.
+
+Listing copy: `fastlane/metadata/android/` (en-US, zh-CN, zh-TW).
+
+### iOS — App Store
+
+See [PR #2](https://github.com/thcathy/earn-time-to-play/pull/2) for the full App Store Connect pipeline (metadata, submit for review, API key, match).
+
+Basic lanes today:
+
+```bash
 fastlane ios build
 fastlane ios beta
 fastlane ios release
 ```
-
-Notes:
-- **Android**: while the app is still a **Draft app** in Play Console, internal uploads must use `release_status: "draft"` (already configured in `android beta`).
-- **iOS**: you must update identifiers/team/profile names in `fastlane/*` to match your Apple Developer setup if you fork this repo.
 
 ## Secrets / signing (do not commit)
 
@@ -107,9 +151,10 @@ These are intentionally gitignored:
 - `android/key.properties`
 - `android/*.jks` (e.g. `android/upload-keystore.jks`)
 - `fastlane/play-store-key.json`
+- `fastlane/.env`
 - `*.p12`, `*.mobileprovision`, `*.cer`, `*.certSigningRequest`
 
-See `android/key.properties.template` for the expected format.
+See `android/key.properties.template`, `fastlane/env.example`, and `fastlane/play-store-key.json.example`.
 
 ## Project Structure
 
