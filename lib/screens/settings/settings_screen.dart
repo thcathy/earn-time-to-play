@@ -7,8 +7,8 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../providers/time_bank_provider.dart';
-import '../../utils/minutes_input_formatters.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/minutes_text_field.dart';
 import '../../widgets/theme_toggle.dart';
 
 /// Settings screen for app configuration
@@ -381,16 +381,12 @@ class _NumberSetting extends StatelessWidget {
           const SizedBox(width: 16),
           SizedBox(
             width: 100,
-            child: TextField(
+            child: MinutesTextField(
               controller: TextEditingController(text: value.toString()),
-              keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              maxLength: MinutesInputFormatters.maxDigits,
-              inputFormatters: MinutesInputFormatters.minutes,
               decoration: InputDecoration(
                 suffixText: suffix,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                counterText: '',
               ),
               onSubmitted: (text) {
                 final newValue = int.tryParse(text) ?? value;

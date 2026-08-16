@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/constants.dart';
 import '../../core/theme/colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/time_bank_provider.dart';
-import '../../utils/minutes_input_formatters.dart';
+import '../../utils/minutes_input.dart';
 import '../../utils/time_utils.dart';
 import '../../widgets/balance_display.dart';
 import '../../widgets/time_entry_button.dart';
 import '../../widgets/theme_toggle.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/minutes_text_field.dart';
 import '../../widgets/stopwatch_timer.dart';
 
 /// Input mode for time tracking
@@ -460,9 +460,6 @@ class _ManualInputState extends State<_ManualInput> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
 
-  static final List<TextInputFormatter> _minutesInputFormatters =
-      MinutesInputFormatters.minutes;
-
   @override
   void dispose() {
     _controller.dispose();
@@ -485,7 +482,7 @@ class _ManualInputState extends State<_ManualInput> {
     final value = int.tryParse(_controller.text);
     if (value == null) return;
 
-    if (value <= 0 || value > AppConstants.maxManualEntryMinutes) {
+    if (!MinutesInput.isValid(value, min: 1)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -516,18 +513,14 @@ class _ManualInputState extends State<_ManualInput> {
     return Row(
       children: [
         Expanded(
-          child: TextField(
+          child: MinutesTextField(
             controller: _controller,
             focusNode: _focusNode,
-            keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
-            maxLength: MinutesInputFormatters.maxDigits,
-            inputFormatters: _minutesInputFormatters,
             decoration: InputDecoration(
               hintText: l10n?.enterMinutes ?? 'Enter minutes',
               suffixText: l10n?.min ?? 'min',
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              counterText: '',
             ),
             onSubmitted: (_) => _submit(),
           ),

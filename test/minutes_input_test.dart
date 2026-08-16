@@ -1,5 +1,5 @@
 import 'package:earn_time_to_play/core/constants.dart';
-import 'package:earn_time_to_play/utils/minutes_input_formatters.dart';
+import 'package:earn_time_to_play/utils/minutes_input.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -8,13 +8,13 @@ void main() {
     TextEditingValue newValue,
   ) {
     var value = newValue;
-    for (final formatter in MinutesInputFormatters.minutes) {
+    for (final formatter in MinutesInput.formatters) {
       value = formatter.formatEditUpdate(oldValue, value);
     }
     return value;
   }
 
-  group('MinutesInputFormatters', () {
+  group('MinutesInput.formatters', () {
     test('allows a valid minute value', () {
       final result = applyAll(
         TextEditingValue.empty,
@@ -37,16 +37,7 @@ void main() {
         TextEditingValue.empty,
         const TextEditingValue(text: '999999999'),
       );
-      expect(
-        result.text.length,
-        lessThanOrEqualTo(MinutesInputFormatters.maxDigits),
-      );
-      final parsed = int.tryParse(result.text);
-      if (parsed != null) {
-        expect(parsed, lessThanOrEqualTo(AppConstants.maxManualEntryMinutes));
-      } else {
-        expect(result.text, isEmpty);
-      }
+      expect(result.text, isEmpty);
     });
 
     test('strips non-digits', () {
@@ -68,23 +59,20 @@ void main() {
     });
   });
 
-  group('MaxIntValueFormatter', () {
-    const formatter = MaxIntValueFormatter(100);
-
-    test('keeps empty input', () {
-      final result = formatter.formatEditUpdate(
-        const TextEditingValue(text: '1'),
-        TextEditingValue.empty,
-      );
-      expect(result.text, isEmpty);
+  group('MinutesInput.isValid', () {
+    test('accepts zero when min is zero', () {
+      expect(MinutesInput.isValid(0), isTrue);
     });
 
-    test('rejects values above max', () {
-      final result = formatter.formatEditUpdate(
-        const TextEditingValue(text: '10'),
-        const TextEditingValue(text: '101'),
+    test('rejects zero when min is one', () {
+      expect(MinutesInput.isValid(0, min: 1), isFalse);
+    });
+
+    test('rejects values above the per-entry maximum', () {
+      expect(
+        MinutesInput.isValid(AppConstants.maxManualEntryMinutes + 1),
+        isFalse,
       );
-      expect(result.text, '10');
     });
   });
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/constants.dart';
@@ -7,9 +6,10 @@ import '../../core/theme/colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/day_entry.dart';
 import '../../providers/time_bank_provider.dart';
-import '../../utils/minutes_input_formatters.dart';
+import '../../utils/minutes_input.dart';
 import '../../utils/time_utils.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/minutes_text_field.dart';
 import '../../widgets/theme_toggle.dart';
 
 /// Filter options for history view
@@ -330,9 +330,6 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
   late TextEditingController _focusController;
   late TextEditingController _playController;
 
-  static final List<TextInputFormatter> _minutesInputFormatters =
-      MinutesInputFormatters.minutes;
-
   @override
   void initState() {
     super.initState();
@@ -355,10 +352,7 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
     final focus = int.tryParse(_focusController.text) ?? 0;
     final play = int.tryParse(_playController.text) ?? 0;
 
-    if (focus < 0 ||
-        play < 0 ||
-        focus > AppConstants.maxManualEntryMinutes ||
-        play > AppConstants.maxManualEntryMinutes) {
+    if (!MinutesInput.isValid(focus) || !MinutesInput.isValid(play)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -461,18 +455,14 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
             style: theme.textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
-          TextField(
+          MinutesTextField(
             controller: _focusController,
-            keyboardType: TextInputType.number,
-            maxLength: MinutesInputFormatters.maxDigits,
-            inputFormatters: _minutesInputFormatters,
             decoration: InputDecoration(
               prefixIcon: Icon(
                 LucideIcons.bookOpen,
                 color: isDark ? AppColors.focusDark : AppColors.focusLight,
               ),
               suffixText: l10n?.min ?? 'min',
-              counterText: '',
             ),
           ),
           const SizedBox(height: 16),
@@ -483,18 +473,14 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
             style: theme.textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
-          TextField(
+          MinutesTextField(
             controller: _playController,
-            keyboardType: TextInputType.number,
-            maxLength: MinutesInputFormatters.maxDigits,
-            inputFormatters: _minutesInputFormatters,
             decoration: InputDecoration(
               prefixIcon: Icon(
                 LucideIcons.gamepad2,
                 color: isDark ? AppColors.playDark : AppColors.playLight,
               ),
               suffixText: l10n?.min ?? 'min',
-              counterText: '',
             ),
           ),
           const SizedBox(height: 24),
