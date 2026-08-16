@@ -1,6 +1,5 @@
 import 'package:earn_time_to_play/core/constants.dart';
 import 'package:earn_time_to_play/utils/minutes_input_formatters.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -15,7 +15,7 @@ class MinutesInputFormatters {
   static final List<TextInputFormatter> minutes = [
     FilteringTextInputFormatter.digitsOnly,
     LengthLimitingTextInputFormatter(maxDigits),
-    MaxIntValueFormatter(AppConstants.maxManualEntryMinutes),
+    const MaxIntValueFormatter(AppConstants.maxManualEntryMinutes),
   ];
 }
 
