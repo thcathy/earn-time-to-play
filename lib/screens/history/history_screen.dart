@@ -9,7 +9,6 @@ import '../../providers/time_bank_provider.dart';
 import '../../utils/minutes_input.dart';
 import '../../utils/time_utils.dart';
 import '../../widgets/app_card.dart';
-import '../../widgets/minutes_text_field.dart';
 import '../../widgets/theme_toggle.dart';
 
 /// Filter options for history view
@@ -455,8 +454,10 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
             style: theme.textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
-          MinutesTextField(
+          TextField(
             controller: _focusController,
+            keyboardType: TextInputType.number,
+            inputFormatters: MinutesInput.formatters,
             decoration: InputDecoration(
               prefixIcon: Icon(
                 LucideIcons.bookOpen,
@@ -473,8 +474,10 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
             style: theme.textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
-          MinutesTextField(
+          TextField(
             controller: _playController,
+            keyboardType: TextInputType.number,
+            inputFormatters: MinutesInput.formatters,
             decoration: InputDecoration(
               prefixIcon: Icon(
                 LucideIcons.gamepad2,

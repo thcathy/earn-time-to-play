@@ -12,7 +12,6 @@ import '../../widgets/time_entry_button.dart';
 import '../../widgets/theme_toggle.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/app_icon.dart';
-import '../../widgets/minutes_text_field.dart';
 import '../../widgets/stopwatch_timer.dart';
 
 /// Input mode for time tracking
@@ -513,10 +512,12 @@ class _ManualInputState extends State<_ManualInput> {
     return Row(
       children: [
         Expanded(
-          child: MinutesTextField(
+          child: TextField(
             controller: _controller,
             focusNode: _focusNode,
+            keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
+            inputFormatters: MinutesInput.formatters,
             decoration: InputDecoration(
               hintText: l10n?.enterMinutes ?? 'Enter minutes',
               suffixText: l10n?.min ?? 'min',
