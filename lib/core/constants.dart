@@ -17,8 +17,8 @@ class AppConstants {
 
   /// Upper bound for a single manual entry (in minutes).
   ///
-  /// Keeps input sane (e.g. prevents accidentally logging millions of minutes).
-  static const int maxManualEntryMinutes = 24 * 60; // 1440
+  /// Keeps one input from accepting an unbounded number of minutes.
+  static const int maxManualEntryMinutes = 24 * 60;
 
   // Animation durations
   static const Duration shortAnimation = Duration(milliseconds: 150);

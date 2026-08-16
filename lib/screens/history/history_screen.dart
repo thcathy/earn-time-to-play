@@ -7,6 +7,7 @@ import '../../core/theme/colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/day_entry.dart';
 import '../../providers/time_bank_provider.dart';
+import '../../utils/minutes_input_formatters.dart';
 import '../../utils/time_utils.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/theme_toggle.dart';
@@ -329,9 +330,8 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
   late TextEditingController _focusController;
   late TextEditingController _playController;
 
-  static final List<TextInputFormatter> _minutesInputFormatters = [
-    FilteringTextInputFormatter.digitsOnly,
-  ];
+  static final List<TextInputFormatter> _minutesInputFormatters =
+      MinutesInputFormatters.minutes;
 
   @override
   void initState() {
@@ -464,6 +464,7 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
           TextField(
             controller: _focusController,
             keyboardType: TextInputType.number,
+            maxLength: MinutesInputFormatters.maxDigits,
             inputFormatters: _minutesInputFormatters,
             decoration: InputDecoration(
               prefixIcon: Icon(
@@ -471,6 +472,7 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
                 color: isDark ? AppColors.focusDark : AppColors.focusLight,
               ),
               suffixText: l10n?.min ?? 'min',
+              counterText: '',
             ),
           ),
           const SizedBox(height: 16),
@@ -484,6 +486,7 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
           TextField(
             controller: _playController,
             keyboardType: TextInputType.number,
+            maxLength: MinutesInputFormatters.maxDigits,
             inputFormatters: _minutesInputFormatters,
             decoration: InputDecoration(
               prefixIcon: Icon(
@@ -491,6 +494,7 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
                 color: isDark ? AppColors.playDark : AppColors.playLight,
               ),
               suffixText: l10n?.min ?? 'min',
+              counterText: '',
             ),
           ),
           const SizedBox(height: 24),

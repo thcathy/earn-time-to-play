@@ -6,6 +6,7 @@ import '../../core/constants.dart';
 import '../../core/theme/colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/time_bank_provider.dart';
+import '../../utils/minutes_input_formatters.dart';
 import '../../utils/time_utils.dart';
 import '../../widgets/balance_display.dart';
 import '../../widgets/time_entry_button.dart';
@@ -459,9 +460,8 @@ class _ManualInputState extends State<_ManualInput> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
 
-  static final List<TextInputFormatter> _minutesInputFormatters = [
-    FilteringTextInputFormatter.digitsOnly,
-  ];
+  static final List<TextInputFormatter> _minutesInputFormatters =
+      MinutesInputFormatters.minutes;
 
   @override
   void dispose() {
@@ -519,14 +519,15 @@ class _ManualInputState extends State<_ManualInput> {
           child: TextField(
             controller: _controller,
             focusNode: _focusNode,
-            // Always allow typing; enforce restrictions on submit.
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
+            maxLength: MinutesInputFormatters.maxDigits,
             inputFormatters: _minutesInputFormatters,
             decoration: InputDecoration(
               hintText: l10n?.enterMinutes ?? 'Enter minutes',
               suffixText: l10n?.min ?? 'min',
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              counterText: '',
             ),
             onSubmitted: (_) => _submit(),
           ),
