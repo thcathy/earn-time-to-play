@@ -103,6 +103,18 @@ class StorageService {
     await _prefs.remove(AppConstants.settingsKey);
   }
 
+  // ==================== Onboarding ====================
+
+  /// Whether the user has finished the first-run onboarding.
+  bool isOnboardingCompleted() {
+    return _prefs.getBool(AppConstants.onboardingCompletedKey) ?? false;
+  }
+
+  /// Persist onboarding completion.
+  Future<void> setOnboardingCompleted(bool completed) async {
+    await _prefs.setBool(AppConstants.onboardingCompletedKey, completed);
+  }
+
   // ==================== Export ====================
 
   /// Export all data as CSV string

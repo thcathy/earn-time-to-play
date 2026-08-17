@@ -16,7 +16,10 @@ Earn Time To Play uses a simple concept: **earn time by focusing, spend time by 
 
 ## Features
 
+- **Onboarding**: first-run walkthrough of the earn → spend loop
 - **Tracking**: quick-add entries + stopwatch for real-time Focus/Play tracking
+- **Streaks**: daily tracking streak on the Today screen to build habit
+- **Share progress**: invite friends with balance, totals, and streak
 - **History**: browse, edit, and delete past entries
 - **Analytics**: charts and stats (weekly focus vs play, balance trend, distribution)
 - **Rules**: warning threshold, optional max play/day, allow overdraft toggle

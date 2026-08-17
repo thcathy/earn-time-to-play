@@ -6,16 +6,28 @@ import 'l10n/app_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
+import 'providers/onboarding_provider.dart';
 import 'screens/today/today_screen.dart';
 import 'screens/history/history_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/analytics/analytics_screen.dart';
+import 'screens/onboarding/onboarding_screen.dart';
 import 'widgets/app_shell.dart';
 
 /// App router configuration
 final _router = GoRouter(
   initialLocation: '/today',
   routes: [
+    GoRoute(
+      path: '/onboarding',
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const OnboardingScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    ),
     ShellRoute(
       builder: (context, state, child) => AppShell(child: child),
       routes: [
@@ -72,6 +84,32 @@ class TimeBankApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     final appLocale = ref.watch(localeProvider);
+    final onboardingCompleted = ref.watch(onboardingCompletedProvider);
+
+    // First-run onboarding before the main shell — critical for activation.
+    if (!onboardingCompleted) {
+      return MaterialApp(
+        title: 'Earn Time To Play',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: themeMode,
+        locale: appLocale.locale,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en'),
+          Locale('zh'),
+          Locale('zh', 'TW'),
+          Locale('zh', 'CN'),
+        ],
+        home: const OnboardingScreen(),
+      );
+    }
 
     return MaterialApp.router(
       title: 'Earn Time To Play',

@@ -121,5 +121,38 @@ class TimeUtils {
     }
     return dates;
   }
+
+  /// Consecutive calendar days with any tracked time.
+  ///
+  /// Counts backward from today if today has activity; otherwise from
+  /// yesterday (so a streak is not broken until a full idle day passes).
+  static int calculateTrackingStreak(
+    Iterable<String> activeDates, {
+    DateTime? now,
+  }) {
+    final active = activeDates.toSet();
+    if (active.isEmpty) return 0;
+
+    final today = now ?? DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
+    final todayKey = formatDate(todayOnly);
+    final yesterdayKey = formatDate(todayOnly.subtract(const Duration(days: 1)));
+
+    DateTime cursor;
+    if (active.contains(todayKey)) {
+      cursor = todayOnly;
+    } else if (active.contains(yesterdayKey)) {
+      cursor = todayOnly.subtract(const Duration(days: 1));
+    } else {
+      return 0;
+    }
+
+    var streak = 0;
+    while (active.contains(formatDate(cursor))) {
+      streak++;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    return streak;
+  }
 }
 
