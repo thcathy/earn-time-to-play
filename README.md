@@ -100,8 +100,9 @@ Fastlane can build, upload metadata, push the binary, and submit for review.
    cp fastlane/env.example fastlane/.env
    # set APP_STORE_CONNECT_API_KEY_ID / ISSUER_ID / KEY_PATH
    ```
-4. Install Ruby deps:
+4. Install Ruby deps (Homebrew Ruby, not macOS system Ruby 2.6):
    ```bash
+   export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
    bundle install
    ```
 5. **Signing (pick one)**
@@ -111,43 +112,65 @@ Fastlane can build, upload metadata, push the binary, and submit for review.
      bundle exec fastlane ios sync_certs
      ```
 6. **Screenshots:** first submission needs screenshots in App Store Connect, or under `fastlane/screenshots/` with `SKIP_SCREENSHOTS=false`. See `fastlane/screenshots/README.md`.
-7. Update `fastlane/metadata/review_information/phone_number.txt` with a real contact number.
 
 **Commands**
 
 ```bash
-# Build IPA only
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+
 bundle exec fastlane ios build
-# or
 ./build-ios.sh
 
-# TestFlight
 bundle exec fastlane ios beta
 ./build-ios.sh beta
 
-# App Store: upload binary + metadata and submit for review
 bundle exec fastlane ios release
 ./build-ios.sh release
 
-# Submit latest uploaded build (no rebuild)
-bundle exec fastlane ios submit
-
-# Metadata only
+SKIP_BUILD=true bundle exec fastlane ios submit
 bundle exec fastlane ios metadata
 ```
 
-Useful `.env` knobs: `SUBMIT_FOR_REVIEW`, `AUTOMATIC_RELEASE`, `PHASED_RELEASE`, `SKIP_SCREENSHOTS`, `SKIP_METADATA`.
+Useful `.env` knobs: `SUBMIT_FOR_REVIEW`, `AUTOMATIC_RELEASE`, `PHASED_RELEASE`, `SKIP_SCREENSHOTS`, `SKIP_METADATA`, `SKIP_BUILD`.
 
 Store listing copy lives in `fastlane/metadata/` (en-US, zh-Hant, zh-Hans).
 
-### Android
+### Android — Google Play (full pipeline)
+
+Fastlane can build a signed AAB, upload listing metadata, changelogs, and push to a Play track.
+
+**One-time setup**
+
+1. Create the app in [Google Play Console](https://play.google.com/console) with package `com.thcathy.earntimetoplay`.
+2. **Signing:** generate an upload keystore and `android/key.properties`:
+   ```bash
+   keytool -genkey -v -keystore android/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   cp android/key.properties.template android/key.properties
+   ```
+3. **Play API access:** Google Cloud → create service account → grant Play Console access (Release manager) → download JSON key as `fastlane/play-store-key.json` (see `fastlane/play-store-key.json.example`).
+4. Configure release env:
+   ```bash
+   export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+   bundle install
+   ```
+5. **Store assets:** first submission needs screenshots + feature graphic in Play Console, or under `fastlane/metadata/android/.../images/` with `SKIP_UPLOAD_SCREENSHOTS=false`.
+
+**Commands**
 
 ```bash
-bundle exec fastlane android beta     # Play internal (draft)
-bundle exec fastlane android release  # Play production (draft)
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+
+./build-android.sh
+./build-android.sh beta
+./build-android.sh release
+bundle exec fastlane android metadata
+PLAY_VALIDATE_ONLY=true bundle exec fastlane android validate
+bundle exec fastlane android promote
 ```
 
-While the Play app is still a **Draft app**, uploads use `release_status: "draft"` (already configured).
+Useful `.env` knobs: `PLAY_TRACK`, `PLAY_RELEASE_STATUS` (`draft` while the Play app is still a Draft app), `PLAY_ROLLOUT`, `SKIP_UPLOAD_*`, `SKIP_BUILD`.
+
+Listing copy: `fastlane/metadata/android/` (en-US, zh-CN, zh-TW).
 
 ## Secrets / signing (do not commit)
 
@@ -158,7 +181,7 @@ These are intentionally gitignored:
 - `fastlane/.env`
 - `*.p8`, `*.p12`, `*.mobileprovision`, `*.cer`, `*.certSigningRequest`
 
-See `android/key.properties.template` and `fastlane/env.example` for the expected format.
+See `android/key.properties.template`, `fastlane/env.example`, and `fastlane/play-store-key.json.example`.
 
 ## Project Structure
 

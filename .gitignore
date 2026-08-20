@@ -79,6 +79,7 @@ fastlane/.env
 fastlane/.env.*
 !fastlane/env.example
 *.p8
+!fastlane/play-store-key.json.example
 
 # Ruby
 .bundle/

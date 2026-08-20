@@ -4,7 +4,7 @@
 # iOS:
 #   bundle exec fastlane ios beta      # build + TestFlight
 #   bundle exec fastlane ios release   # build + App Store (metadata + optional submit)
-#   bundle exec fastlane ios submit    # submit latest TestFlight build for review
+#   bundle exec fastlane ios submit    # build + upload + submit (SKIP_BUILD=true to reuse IPA)
 #   bundle exec fastlane ios sync_certs
 #
 # Required secrets: see fastlane/env.example → copy to fastlane/.env (gitignored)
@@ -13,7 +13,8 @@ opt_out_usage
 default_platform(:ios)
 
 APP_IDENTIFIER = ENV.fetch("APP_IDENTIFIER", "com.thcathy.earntimetoplay")
-IPA_PATH = "build/ios/EarnTimeToPlay.ipa"
+# Fastlane cwd is fastlane/; keep this absolute so SKIP_BUILD finds the IPA.
+IPA_PATH = File.expand_path("../build/ios/EarnTimeToPlay.ipa", __dir__)
 WORKSPACE = "ios/Runner.xcworkspace"
 XCODEPROJ = "ios/Runner.xcodeproj"
 SCHEME = "Runner"
@@ -24,13 +25,64 @@ def flutter_root
   File.expand_path("..", __dir__)
 end
 
-def prepare_flutter_ios!
+# ---------- Android helpers ----------
+
+def android_aab_path
+  File.join(flutter_root, "build/app/outputs/bundle/release/app-release.aab")
+end
+
+def prepare_flutter_android!
   sh("cd \"#{flutter_root}\" && flutter pub get")
-  # Fastlane may inject GEM_* that breaks system CocoaPods — clear them for pod install
+end
+
+def build_android_aab!
+  if ENV.fetch("SKIP_BUILD", "false") == "true"
+    UI.user_error!("SKIP_BUILD=true but #{android_aab_path} is missing. Run ./build-android.sh first.") unless File.exist?(android_aab_path)
+    UI.important("SKIP_BUILD=true — reusing #{android_aab_path}")
+    return
+  end
+  prepare_flutter_android!
+  sh("cd \"#{flutter_root}\" && flutter build appbundle --release")
+  UI.user_error!("AAB not found at #{android_aab_path}") unless File.exist?(android_aab_path)
+end
+
+def play_store_upload_options(overrides = {})
+  options = {
+    package_name: ENV.fetch("ANDROID_PACKAGE_NAME", "com.thcathy.earntimetoplay"),
+    metadata_path: "fastlane/metadata/android",
+    skip_upload_apk: true,
+    skip_upload_metadata: ENV.fetch("SKIP_UPLOAD_METADATA", "false") == "true",
+    skip_upload_images: ENV.fetch("SKIP_UPLOAD_IMAGES", "true") == "true",
+    skip_upload_screenshots: ENV.fetch("SKIP_UPLOAD_SCREENSHOTS", "true") == "true",
+    skip_upload_changelogs: ENV.fetch("SKIP_UPLOAD_CHANGELOGS", "false") == "true",
+    validate_only: ENV.fetch("PLAY_VALIDATE_ONLY", "false") == "true"
+  }
+  json_key = ENV["PLAY_STORE_JSON_KEY"].to_s.strip
+  options[:json_key] = json_key unless json_key.empty?
+  options.merge(overrides)
+end
+
+def prepare_flutter_ios!
+  # pub get does not refresh FLUTTER_BUILD_NAME; config-only writes Generated.xcconfig from pubspec.
+  sh("cd \"#{flutter_root}\" && flutter pub get && flutter build ios --config-only --release")
   sh("cd \"#{flutter_root}/ios\" && env -u GEM_HOME -u GEM_PATH -u BUNDLE_GEMFILE pod install")
 end
 
+def drop_blank_asc_env!
+  %w[
+    APP_STORE_CONNECT_API_KEY_ID
+    APP_STORE_CONNECT_API_ISSUER_ID
+    APP_STORE_CONNECT_API_KEY_PATH
+    APP_STORE_CONNECT_API_KEY_CONTENT
+    ASC_KEY_ID
+    ASC_ISSUER_ID
+    ASC_KEY_PATH
+    ASC_KEY_CONTENT
+  ].each { |k| ENV.delete(k) if ENV[k].to_s.strip.empty? }
+end
+
 def app_store_api_key
+  drop_blank_asc_env!
   key_id = ENV["APP_STORE_CONNECT_API_KEY_ID"] || ENV["ASC_KEY_ID"]
   issuer_id = ENV["APP_STORE_CONNECT_API_ISSUER_ID"] || ENV["ASC_ISSUER_ID"]
   key_path = ENV["APP_STORE_CONNECT_API_KEY_PATH"] || ENV["ASC_KEY_PATH"]
@@ -77,7 +129,81 @@ def sync_signing!(readonly: is_ci)
   )
 end
 
+def skip_build?
+  ENV.fetch("SKIP_BUILD", "false") == "true"
+end
+
+def ensure_ipa!
+  unless File.exist?(IPA_PATH)
+    UI.user_error!("SKIP_BUILD=true but #{IPA_PATH} is missing. Run ./build-ios.sh first.")
+  end
+  UI.important("SKIP_BUILD=true — reusing #{IPA_PATH}")
+end
+
+def parse_pubspec_version!
+  text = File.read(File.join(flutter_root, "pubspec.yaml"))
+  match = text.match(/^version:\s*([0-9.]+)\+(\d+)/)
+  UI.user_error!("Could not parse pubspec.yaml version (expected x.y.z+build)") unless match
+  { marketing: match[1], build: match[2] }
+end
+
+def live_itunes_version
+  require "json"
+  require "open-uri"
+  data = JSON.parse(URI.parse("https://itunes.apple.com/lookup?bundleId=#{APP_IDENTIFIER}").open.read)
+  data.dig("results", 0, "version")
+rescue StandardError => e
+  UI.important("Could not read live App Store version (#{e.message}); skipping store compare")
+  nil
+end
+
+def preflight_store_upload!
+  spec = parse_pubspec_version!
+  live = live_itunes_version
+  UI.message("pubspec #{spec[:marketing]}+#{spec[:build]}" + (live ? " · live App Store #{live}" : ""))
+
+  if live && Gem::Version.new(spec[:marketing]) <= Gem::Version.new(live)
+    UI.user_error!(
+      "Marketing version #{spec[:marketing]} is not higher than live App Store #{live}. " \
+      "Bump version in pubspec.yaml before upload."
+    )
+  end
+
+  UI.user_error!("IPA missing at #{IPA_PATH}") unless File.exist?(IPA_PATH)
+
+  ipa_ver = get_ipa_info_plist_value(ipa: IPA_PATH, key: "CFBundleShortVersionString")
+  ipa_build = get_ipa_info_plist_value(ipa: IPA_PATH, key: "CFBundleVersion")
+  UI.message("IPA CFBundleShortVersionString=#{ipa_ver} CFBundleVersion=#{ipa_build}")
+
+  if ipa_ver != spec[:marketing]
+    UI.user_error!(
+      "IPA version #{ipa_ver} does not match pubspec #{spec[:marketing]}. " \
+      "Rebuild without SKIP_BUILD."
+    )
+  end
+
+  if live && Gem::Version.new(ipa_ver) <= Gem::Version.new(live)
+    UI.user_error!("IPA #{ipa_ver} is not higher than live App Store #{live}. Bump pubspec.yaml and rebuild.")
+  end
+
+  phone = File.join(flutter_root, "fastlane/metadata/review_information/phone_number.txt")
+  if File.exist?(phone)
+    number = File.read(phone).strip
+    if number.empty? || number.include?("00000000")
+      UI.user_error!(
+        "Placeholder reviewer phone in #{phone}. Remove the file to keep the live ASC number, " \
+        "or put a real +country number."
+      )
+    end
+  end
+end
+
 def build_ios_ipa!
+  if skip_build?
+    ensure_ipa!
+    return
+  end
+
   prepare_flutter_ios!
   sync_signing!(readonly: is_ci)
 
@@ -91,7 +217,7 @@ def build_ios_ipa!
     scheme: SCHEME,
     configuration: "Release",
     export_method: "app-store",
-    output_directory: "build/ios",
+    output_directory: File.expand_path("../build/ios", __dir__),
     output_name: "EarnTimeToPlay.ipa",
     clean: true,
     silent: false
@@ -123,8 +249,8 @@ def build_ios_ipa!
 end
 
 def common_deliver_options(api_key)
-  {
-    api_key: api_key,
+  drop_blank_asc_env!
+  options = {
     ipa: IPA_PATH,
     app_identifier: APP_IDENTIFIER,
     force: true,
@@ -141,11 +267,14 @@ def common_deliver_options(api_key)
       content_rights_has_rights: true
     }
   }
+  options[:api_key] = api_key unless api_key.nil?
+  options
 end
 
 # ==================== iOS ====================
 platform :ios do
   before_all do
+    drop_blank_asc_env!
     setup_ci if ENV["CI"]
   end
 
@@ -164,6 +293,7 @@ platform :ios do
   desc "Build IPA only (no upload)"
   lane :build do
     build_ios_ipa!
+    preflight_store_upload!
     UI.success("IPA ready at #{IPA_PATH}")
   end
 
@@ -171,25 +301,28 @@ platform :ios do
   lane :beta do
     api_key = app_store_api_key
     build_ios_ipa!
+    preflight_store_upload!
 
-    upload_to_testflight(
-      api_key: api_key,
+    tf_opts = {
       ipa: IPA_PATH,
       app_identifier: APP_IDENTIFIER,
       skip_waiting_for_build_processing: ENV.fetch("SKIP_WAITING_FOR_BUILD_PROCESSING", "true") == "true",
       distribute_external: false,
       notify_external_testers: false,
       changelog: ENV["TESTFLIGHT_CHANGELOG"]
-    )
+    }
+    tf_opts[:api_key] = api_key unless api_key.nil?
+    upload_to_testflight(**tf_opts)
   end
 
   desc "Build, upload metadata + binary to App Store Connect, optionally submit for review"
   lane :release do
     api_key = app_store_api_key
     build_ios_ipa!
+    preflight_store_upload!
 
     submit = ENV.fetch("SUBMIT_FOR_REVIEW", "true") == "true"
-    auto_release = ENV.fetch("AUTOMATIC_RELEASE", "false") == "true"
+    auto_release = ENV.fetch("AUTOMATIC_RELEASE", "true") == "true"
     skip_screenshots = ENV.fetch("SKIP_SCREENSHOTS", "true") == "true"
     skip_metadata = ENV.fetch("SKIP_METADATA", "false") == "true"
 
@@ -212,35 +345,57 @@ platform :ios do
     end
   end
 
-  desc "Submit the latest processing/ready build for App Store review (no rebuild)"
+  desc "Upload + submit for review. Builds unless SKIP_BUILD=true. SKIP_BINARY_UPLOAD=true submits the latest ASC build only."
   lane :submit do
     api_key = app_store_api_key
-    upload_to_app_store(
-      api_key: api_key,
-      app_identifier: APP_IDENTIFIER,
-      skip_binary_upload: true,
-      skip_screenshots: true,
-      skip_metadata: ENV.fetch("SKIP_METADATA", "false") == "true",
-      submit_for_review: true,
-      automatic_release: ENV.fetch("AUTOMATIC_RELEASE", "false") == "true",
-      phased_release: ENV.fetch("PHASED_RELEASE", "true") == "true",
-      force: true,
-      run_precheck_before_submit: true,
-      precheck_include_in_app_purchases: false,
-      submission_information: {
-        add_id_info_uses_idfa: false,
-        export_compliance_uses_encryption: false,
-        content_rights_contains_third_party_content: false,
-        content_rights_has_rights: true
+    skip_binary = ENV.fetch("SKIP_BINARY_UPLOAD", "false") == "true"
+
+    unless skip_binary
+      build_ios_ipa!
+      preflight_store_upload!
+    end
+
+    if skip_binary
+      UI.important("SKIP_BINARY_UPLOAD=true — submitting latest processed App Store Connect build (local IPA ignored)")
+      skip_opts = {
+        app_identifier: APP_IDENTIFIER,
+        skip_binary_upload: true,
+        skip_screenshots: true,
+        skip_metadata: ENV.fetch("SKIP_METADATA", "false") == "true",
+        submit_for_review: true,
+        automatic_release: ENV.fetch("AUTOMATIC_RELEASE", "true") == "true",
+        phased_release: ENV.fetch("PHASED_RELEASE", "true") == "true",
+        force: true,
+        run_precheck_before_submit: true,
+        precheck_include_in_app_purchases: false,
+        submission_information: {
+          add_id_info_uses_idfa: false,
+          export_compliance_uses_encryption: false,
+          content_rights_contains_third_party_content: false,
+          content_rights_has_rights: true
+        }
       }
-    )
+      skip_opts[:api_key] = api_key unless api_key.nil?
+      upload_to_app_store(**skip_opts)
+    else
+      upload_to_app_store(
+        **common_deliver_options(api_key).merge(
+          submit_for_review: true,
+          automatic_release: ENV.fetch("AUTOMATIC_RELEASE", "true") == "true",
+          phased_release: ENV.fetch("PHASED_RELEASE", "true") == "true",
+          skip_screenshots: ENV.fetch("SKIP_SCREENSHOTS", "true") == "true",
+          skip_metadata: ENV.fetch("SKIP_METADATA", "false") == "true",
+          metadata_path: "fastlane/metadata",
+          screenshots_path: "fastlane/screenshots"
+        )
+      )
+    end
   end
 
   desc "Upload metadata only (descriptions, privacy URL, etc.)"
   lane :metadata do
     api_key = app_store_api_key
-    upload_to_app_store(
-      api_key: api_key,
+    meta_opts = {
       app_identifier: APP_IDENTIFIER,
       skip_binary_upload: true,
       skip_screenshots: ENV.fetch("SKIP_SCREENSHOTS", "true") == "true",
@@ -249,41 +404,92 @@ platform :ios do
       force: true,
       metadata_path: "fastlane/metadata",
       screenshots_path: "fastlane/screenshots"
-    )
+    }
+    meta_opts[:api_key] = api_key unless api_key.nil?
+    upload_to_app_store(**meta_opts)
   end
 end
 
+
 # ==================== Android ====================
 platform :android do
-  desc "Build and upload to Google Play (Internal Testing)"
-  lane :beta do
-    sh("cd \"#{flutter_root}\" && flutter build appbundle --release")
-    upload_to_play_store(
-      track: "internal",
-      aab: "build/app/outputs/bundle/release/app-release.aab",
-      release_status: "draft",
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true
-    )
-  end
-
-  desc "Build and upload to Google Play (Production draft)"
-  lane :release do
-    sh("cd \"#{flutter_root}\" && flutter build appbundle --release")
-    upload_to_play_store(
-      track: "production",
-      aab: "build/app/outputs/bundle/release/app-release.aab",
-      release_status: "draft",
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true
-    )
-  end
-
-  desc "Build Android app only (no upload)"
+  desc "Build release AAB only (no upload)"
   lane :build do
-    sh("cd \"#{flutter_root}\" && flutter build appbundle --release")
+    build_android_aab!
+    UI.success("AAB ready at #{android_aab_path}")
+  end
+
+  desc "Validate Play Store metadata + AAB (dry run, no upload)"
+  lane :validate do
+    build_android_aab!
+    upload_to_play_store(
+      **play_store_upload_options(
+        aab: android_aab_path,
+        track: ENV.fetch("PLAY_TRACK", "internal"),
+        release_status: ENV.fetch("PLAY_RELEASE_STATUS", "draft"),
+        validate_only: true
+      )
+    )
+  end
+
+  desc "Upload store listing metadata only (no binary)"
+  lane :metadata do
+    upload_to_play_store(
+      **play_store_upload_options(
+        skip_upload_aab: true,
+        skip_upload_metadata: false,
+        skip_upload_changelogs: false
+      )
+    )
+    UI.success("Play Store metadata uploaded")
+  end
+
+  desc "Build and upload to Google Play Internal Testing"
+  lane :beta do
+    build_android_aab!
+    upload_to_play_store(
+      **play_store_upload_options(
+        aab: android_aab_path,
+        track: ENV.fetch("PLAY_TRACK", "internal"),
+        release_status: ENV.fetch("PLAY_RELEASE_STATUS", "draft")
+      )
+    )
+    UI.success("Uploaded to Play track: #{ENV.fetch('PLAY_TRACK', 'internal')}")
+  end
+
+  desc "Build and upload to Google Play Production (metadata + AAB)"
+  lane :release do
+    build_android_aab!
+    track = ENV.fetch("PLAY_TRACK", "production")
+    status = ENV.fetch("PLAY_RELEASE_STATUS", "draft")
+    rollout = ENV["PLAY_ROLLOUT"]
+
+    options = play_store_upload_options(
+      aab: android_aab_path,
+      track: track,
+      release_status: status
+    )
+    options[:rollout] = rollout if rollout && !rollout.empty?
+
+    upload_to_play_store(**options)
+    UI.success("Uploaded to Play #{track} (#{status})")
+    if status == "draft"
+      UI.important("Release saved as draft — finish review in Play Console or set PLAY_RELEASE_STATUS=completed")
+    end
+  end
+
+  desc "Promote latest internal/closed build to production (no rebuild)"
+  lane :promote do
+    upload_to_play_store(
+      **play_store_upload_options(
+        skip_upload_aab: true,
+        track: ENV.fetch("PLAY_PROMOTE_FROM", "internal"),
+        track_promote_to: ENV.fetch("PLAY_PROMOTE_TO", "production"),
+        release_status: ENV.fetch("PLAY_RELEASE_STATUS", "draft"),
+        version_code: ENV["PLAY_VERSION_CODE"]&.to_i
+      )
+    )
+    UI.success("Promoted to #{ENV.fetch('PLAY_PROMOTE_TO', 'production')}")
   end
 end
 
@@ -291,7 +497,7 @@ desc "Build iOS IPA + Android AAB (no upload)"
 lane :build_all do
   sh("cd \"#{flutter_root}\" && flutter clean && flutter pub get")
   build_ios_ipa!
-  sh("cd \"#{flutter_root}\" && flutter build appbundle --release")
+  build_android_aab!
   UI.success("iOS: #{IPA_PATH}")
-  UI.success("Android: build/app/outputs/bundle/release/app-release.aab")
+  UI.success("Android: #{android_aab_path}")
 end

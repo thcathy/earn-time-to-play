@@ -1,51 +1,55 @@
 #!/bin/bash
 
-# Build EarnTimeToPlay for Google Play Store
-# Usage: ./build-android.sh
+# Build / release Earn Time To Play for Google Play
+# Usage:
+#   ./build-android.sh           # build AAB only
+#   ./build-android.sh beta      # internal testing upload
+#   ./build-android.sh release   # production upload (+ metadata)
+#   ./build-android.sh metadata  # listing only
+#   ./build-android.sh validate  # dry-run upload validation
 
-set -e  # Exit on any error
+set -euo pipefail
 
-echo "🤖 Building EarnTimeToPlay for Android"
-echo "==========================================="
-
-# Check if key.properties exists
-if [ ! -f "android/key.properties" ]; then
-    echo ""
-    echo "⚠️  android/key.properties not found!"
-    echo ""
-    echo "Please create it first:"
-    echo "1. Generate keystore (if you haven't):"
-    echo "   keytool -genkey -v -keystore ~/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload"
-    echo ""
-    echo "2. Copy template and fill in values:"
-    echo "   cp android/key.properties.template android/key.properties"
-    echo ""
-    exit 1
+# Prefer Homebrew Ruby. macOS /usr/bin/ruby is 2.6 and cannot load Bundler 4.
+if [[ -x /opt/homebrew/opt/ruby/bin/bundle ]]; then
+  export PATH="/opt/homebrew/opt/ruby/bin:${PATH}"
 fi
 
-# Step 1: Clean
-echo ""
-echo "🧹 Cleaning previous build..."
-flutter clean
+LANE="${1:-build}"
 
-# Step 2: Get dependencies
-echo ""
-echo "📦 Getting dependencies..."
-flutter pub get
+echo "Building Earn Time To Play for Android (lane: ${LANE})"
+echo "======================================================"
 
-# Step 3: Build App Bundle
-echo ""
-echo "🔨 Building Android App Bundle (AAB)..."
-flutter build appbundle --release
+if [[ ! -f "android/key.properties" ]]; then
+  echo ""
+  echo "android/key.properties not found."
+  echo "1. Generate keystore:"
+  echo "   keytool -genkey -v -keystore android/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload"
+  echo "2. Copy template:"
+  echo "   cp android/key.properties.template android/key.properties"
+  echo ""
+  exit 1
+fi
 
-echo ""
-echo "✅ Android build complete!"
-echo ""
-echo "📦 Output: build/app/outputs/bundle/release/app-release.aab"
-echo ""
-echo "Next steps:"
-echo "1. Go to Google Play Console: https://play.google.com/console"
-echo "2. Select your app (or create new)"
-echo "3. Production → Create new release"
-echo "4. Upload the AAB file"
-echo "5. Complete store listing and submit for review"
+if [[ ! -f "fastlane/play-store-key.json" && -f "fastlane/play-store-key.json.example" && "${LANE}" != "build" ]]; then
+  echo ""
+  echo "fastlane/play-store-key.json not found (required for upload lanes)."
+  echo "See fastlane/play-store-key.json.example and fastlane/env.example"
+  echo ""
+  exit 1
+fi
+
+if [[ ! -f "fastlane/.env" && -f "fastlane/env.example" ]]; then
+  echo "Tip: cp fastlane/env.example fastlane/.env to configure PLAY_TRACK / PLAY_RELEASE_STATUS."
+fi
+
+if command -v bundle >/dev/null 2>&1 && [[ -f "Gemfile" ]]; then
+  bundle check >/dev/null 2>&1 || bundle install
+  bundle exec fastlane android "${LANE}"
+else
+  echo "bundle/Gemfile not available — falling back to flutter build appbundle"
+  flutter pub get
+  flutter build appbundle --release
+  echo "Output: build/app/outputs/bundle/release/app-release.aab"
+  echo "Upload with: bundle exec fastlane android beta"
+fi
