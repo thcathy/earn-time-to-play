@@ -23,7 +23,15 @@ void main() {
       expect(result.text, '30');
     });
 
-    test('allows the per-entry maximum', () {
+    test('allows zero', () {
+      final result = applyAll(
+        TextEditingValue.empty,
+        const TextEditingValue(text: '0'),
+      );
+      expect(result.text, '0');
+    });
+
+    test('allows the three-digit maximum', () {
       final maxText = AppConstants.maxManualEntryMinutes.toString();
       final result = applyAll(
         TextEditingValue.empty,
@@ -32,12 +40,12 @@ void main() {
       expect(result.text, maxText);
     });
 
-    test('rejects a long digit string pasted in one go', () {
+    test('does not keep extra digits from a long paste', () {
       final result = applyAll(
         TextEditingValue.empty,
         const TextEditingValue(text: '999999999'),
       );
-      expect(result.text.length, lessThanOrEqualTo(MinutesInput.maxDigits));
+      expect(result.text.length, MinutesInput.maxDigits);
     });
 
     test('strips non-digits', () {
@@ -47,28 +55,20 @@ void main() {
       );
       expect(result.text, '123');
     });
-
-    test('does not keep a fourth digit', () {
-      final result = applyAll(
-        const TextEditingValue(text: '999'),
-        const TextEditingValue(text: '9991'),
-      );
-      expect(result.text, '999');
-    });
   });
 
-  group('MinutesInput.isValid', () {
-    test('accepts zero when min is zero', () {
-      expect(MinutesInput.isValid(0), isTrue);
+  group('MinutesInput.canAdd', () {
+    test('rejects zero', () {
+      expect(MinutesInput.canAdd(0), isFalse);
     });
 
-    test('rejects zero when min is one', () {
-      expect(MinutesInput.isValid(0, min: 1), isFalse);
+    test('accepts one minute', () {
+      expect(MinutesInput.canAdd(1), isTrue);
     });
 
-    test('rejects values above the per-entry maximum', () {
+    test('rejects values above the three-digit maximum', () {
       expect(
-        MinutesInput.isValid(AppConstants.maxManualEntryMinutes + 1),
+        MinutesInput.canAdd(AppConstants.maxManualEntryMinutes + 1),
         isFalse,
       );
     });

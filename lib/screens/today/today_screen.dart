@@ -481,7 +481,7 @@ class _ManualInputState extends State<_ManualInput> {
     final value = int.tryParse(_controller.text);
     if (value == null) return;
 
-    if (!MinutesInput.isValid(value, min: 1)) {
+    if (!MinutesInput.canAdd(value)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,

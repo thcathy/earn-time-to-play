@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../../core/constants.dart';
 import '../../core/theme/colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/day_entry.dart';
@@ -350,18 +349,6 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
   void _save() {
     final focus = int.tryParse(_focusController.text) ?? 0;
     final play = int.tryParse(_playController.text) ?? 0;
-
-    if (!MinutesInput.isValid(focus) || !MinutesInput.isValid(play)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(
-            'Minutes must be 0–${AppConstants.maxManualEntryMinutes}.',
-          ),
-        ),
-      );
-      return;
-    }
 
     ref.read(timeBankProvider.notifier).updateEntry(
           widget.entry.date,

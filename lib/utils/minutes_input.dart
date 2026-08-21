@@ -1,20 +1,20 @@
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
 
-/// Parsing, validation, and typing constraints for minute fields.
+/// Typing constraints for minute fields: digits only, three characters.
 class MinutesInput {
   MinutesInput._();
 
   static final int maxDigits =
       AppConstants.maxManualEntryMinutes.toString().length;
 
-  /// Digits only, capped at [maxDigits]. That also caps the numeric value.
   static final List<TextInputFormatter> formatters = [
     FilteringTextInputFormatter.digitsOnly,
     LengthLimitingTextInputFormatter(maxDigits),
   ];
 
-  static bool isValid(int value, {int min = 0}) {
-    return value >= min && value <= AppConstants.maxManualEntryMinutes;
+  /// Today add: at least one minute, and within the three-digit max.
+  static bool canAdd(int minutes) {
+    return minutes >= 1 && minutes <= AppConstants.maxManualEntryMinutes;
   }
 }
