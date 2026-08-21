@@ -346,7 +346,7 @@ class _ThemeOption extends StatelessWidget {
   }
 }
 
-class _NumberSetting extends StatelessWidget {
+class _NumberSetting extends StatefulWidget {
   final String title;
   final String subtitle;
   final int value;
@@ -362,6 +362,36 @@ class _NumberSetting extends StatelessWidget {
   });
 
   @override
+  State<_NumberSetting> createState() => _NumberSettingState();
+}
+
+class _NumberSettingState extends State<_NumberSetting> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value.toString());
+  }
+
+  @override
+  void didUpdateWidget(_NumberSetting oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      final next = widget.value.toString();
+      if (_controller.text != next) {
+        _controller.text = next;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -373,8 +403,8 @@ class _NumberSetting extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: theme.textTheme.bodyLarge),
-                Text(subtitle, style: theme.textTheme.bodySmall),
+                Text(widget.title, style: theme.textTheme.bodyLarge),
+                Text(widget.subtitle, style: theme.textTheme.bodySmall),
               ],
             ),
           ),
@@ -382,17 +412,17 @@ class _NumberSetting extends StatelessWidget {
           SizedBox(
             width: 100,
             child: TextField(
-              controller: TextEditingController(text: value.toString()),
+              controller: _controller,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               inputFormatters: MinutesInput.formatters,
               decoration: InputDecoration(
-                suffixText: suffix,
+                suffixText: widget.suffix,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               onSubmitted: (text) {
-                final newValue = int.tryParse(text) ?? value;
-                onChanged(newValue);
+                final newValue = int.tryParse(text) ?? widget.value;
+                widget.onChanged(newValue);
               },
             ),
           ),

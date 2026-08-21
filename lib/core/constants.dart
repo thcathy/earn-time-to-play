@@ -15,11 +15,6 @@ class AppConstants {
   // Quick add options (in minutes)
   static const List<int> quickAddOptions = [15, 30, 60];
 
-  /// Upper bound for a single manual entry (in minutes).
-  ///
-  /// Three digits, so one field cannot accept a long number.
-  static const int maxManualEntryMinutes = 999;
-
   // Animation durations
   static const Duration shortAnimation = Duration(milliseconds: 150);
   static const Duration mediumAnimation = Duration(milliseconds: 200);

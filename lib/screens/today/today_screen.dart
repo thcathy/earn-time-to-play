@@ -481,12 +481,14 @@ class _ManualInputState extends State<_ManualInput> {
     final value = int.tryParse(_controller.text);
     if (value == null) return;
 
-    if (!MinutesInput.canAdd(value)) {
+    if (value < 1) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           content: Text(
-            'Enter 1–${AppConstants.maxManualEntryMinutes} minutes.',
+            l10n?.tooShortMessage ??
+                'You need at least 1 minute to log time. Keep going!',
           ),
         ),
       );

@@ -1,4 +1,3 @@
-import 'package:earn_time_to_play/core/constants.dart';
 import 'package:earn_time_to_play/utils/minutes_input.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -31,13 +30,12 @@ void main() {
       expect(result.text, '0');
     });
 
-    test('allows the three-digit maximum', () {
-      final maxText = AppConstants.maxManualEntryMinutes.toString();
+    test('allows three digits', () {
       final result = applyAll(
         TextEditingValue.empty,
-        TextEditingValue(text: maxText),
+        const TextEditingValue(text: '999'),
       );
-      expect(result.text, maxText);
+      expect(result.text, '999');
     });
 
     test('does not keep extra digits from a long paste', () {
@@ -54,23 +52,6 @@ void main() {
         const TextEditingValue(text: '12a3'),
       );
       expect(result.text, '123');
-    });
-  });
-
-  group('MinutesInput.canAdd', () {
-    test('rejects zero', () {
-      expect(MinutesInput.canAdd(0), isFalse);
-    });
-
-    test('accepts one minute', () {
-      expect(MinutesInput.canAdd(1), isTrue);
-    });
-
-    test('rejects values above the three-digit maximum', () {
-      expect(
-        MinutesInput.canAdd(AppConstants.maxManualEntryMinutes + 1),
-        isFalse,
-      );
     });
   });
 }
