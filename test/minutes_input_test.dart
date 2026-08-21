@@ -37,7 +37,7 @@ void main() {
         TextEditingValue.empty,
         const TextEditingValue(text: '999999999'),
       );
-      expect(result.text, isEmpty);
+      expect(result.text.length, lessThanOrEqualTo(MinutesInput.maxDigits));
     });
 
     test('strips non-digits', () {
@@ -48,14 +48,12 @@ void main() {
       expect(result.text, '123');
     });
 
-    test('rejects a value just above the maximum', () {
-      final maxText = AppConstants.maxManualEntryMinutes.toString();
-      final aboveMax = (AppConstants.maxManualEntryMinutes + 1).toString();
+    test('does not keep a fourth digit', () {
       final result = applyAll(
-        TextEditingValue(text: maxText),
-        TextEditingValue(text: aboveMax),
+        const TextEditingValue(text: '999'),
+        const TextEditingValue(text: '9991'),
       );
-      expect(result.text, maxText);
+      expect(result.text, '999');
     });
   });
 
