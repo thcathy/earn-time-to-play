@@ -68,6 +68,7 @@ class _BottomNavBar extends StatelessWidget {
         backgroundColor: theme.colorScheme.surface,
         indicatorColor: theme.colorScheme.primary.withOpacity(0.1),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        maintainBottomViewPadding: true,
         height: 70,
         destinations: [
           NavigationDestination(

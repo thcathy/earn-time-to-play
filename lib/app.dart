@@ -107,6 +107,7 @@ class TimeBankApp extends ConsumerWidget {
           Locale('zh', 'TW'),
           Locale('zh', 'CN'),
         ],
+        builder: _edgeToEdgeBuilder,
         home: const OnboardingScreen(),
       );
     }
@@ -133,6 +134,14 @@ class TimeBankApp extends ConsumerWidget {
         Locale('zh', 'TW'),
         Locale('zh', 'CN'),
       ],
+      builder: _edgeToEdgeBuilder,
     );
   }
+}
+
+Widget _edgeToEdgeBuilder(BuildContext context, Widget? child) {
+  return AnnotatedRegion<SystemUiOverlayStyle>(
+    value: AppTheme.systemUiFor(Theme.of(context).brightness),
+    child: child ?? const SizedBox.shrink(),
+  );
 }

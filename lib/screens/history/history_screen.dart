@@ -5,6 +5,7 @@ import '../../core/theme/colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/day_entry.dart';
 import '../../providers/time_bank_provider.dart';
+import '../../utils/insets.dart';
 import '../../utils/minutes_input.dart';
 import '../../utils/time_utils.dart';
 import '../../widgets/app_card.dart';
@@ -396,12 +397,7 @@ class _EditEntrySheetState extends ConsumerState<_EditEntrySheet> {
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
+      padding: edgeToEdgeContentPadding(MediaQuery.of(context)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

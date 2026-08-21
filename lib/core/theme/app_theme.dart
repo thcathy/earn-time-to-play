@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'colors.dart';
 
@@ -6,6 +7,21 @@ class AppTheme {
   AppTheme._();
 
   static final _baseTextTheme = GoogleFonts.interTextTheme();
+
+  static SystemUiOverlayStyle systemUiFor(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
+    return SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarIconBrightness:
+          isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarContrastEnforced: false,
+      systemStatusBarContrastEnforced: false,
+    );
+  }
 
   /// Light theme - warm, clean, peaceful
   static ThemeData light = ThemeData(
@@ -135,6 +151,7 @@ class AppTheme {
       foregroundColor: AppColors.lightText,
       elevation: 0,
       centerTitle: true,
+      systemOverlayStyle: systemUiFor(Brightness.light),
       titleTextStyle: _baseTextTheme.titleLarge?.copyWith(
         color: AppColors.lightText,
         fontWeight: FontWeight.w600,
@@ -288,6 +305,7 @@ class AppTheme {
       foregroundColor: AppColors.darkText,
       elevation: 0,
       centerTitle: true,
+      systemOverlayStyle: systemUiFor(Brightness.dark),
       titleTextStyle: _baseTextTheme.titleLarge?.copyWith(
         color: AppColors.darkText,
         fontWeight: FontWeight.w600,
