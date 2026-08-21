@@ -4,7 +4,8 @@
 # Usage:
 #   ./build-android.sh           # build AAB only
 #   ./build-android.sh beta      # internal testing upload
-#   ./build-android.sh release   # production upload (+ metadata)
+#   ./build-android.sh release   # promote internal → production and submit for review
+#   PLAY_UPLOAD_AAB=true ./build-android.sh release  # build + upload new AAB to production
 #   ./build-android.sh metadata  # listing only
 #   ./build-android.sh validate  # dry-run upload validation
 

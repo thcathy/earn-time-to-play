@@ -15,7 +15,7 @@ skip_metadata ENV.fetch("SKIP_METADATA", "false") == "true"
 
 # Submission knobs (overridable per-lane / env)
 submit_for_review ENV.fetch("SUBMIT_FOR_REVIEW", "false") == "true"
-automatic_release ENV.fetch("AUTOMATIC_RELEASE", "false") == "true"
+automatic_release ENV.fetch("AUTOMATIC_RELEASE", "true") == "true"
 phased_release ENV.fetch("PHASED_RELEASE", "true") == "true"
 
 force true

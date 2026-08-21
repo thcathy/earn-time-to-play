@@ -5,9 +5,15 @@
 #   ./build-ios.sh           # build IPA only (via Fastlane)
 #   ./build-ios.sh beta      # TestFlight
 #   ./build-ios.sh release   # App Store upload (+ submit if SUBMIT_FOR_REVIEW=true)
-#   ./build-ios.sh submit    # submit latest build for review (no rebuild)
+#   ./build-ios.sh submit    # build + upload + submit for review
+#   SKIP_BUILD=true ./build-ios.sh submit   # reuse existing IPA, then upload + submit
 
 set -euo pipefail
+
+# Prefer Homebrew Ruby. macOS /usr/bin/ruby is 2.6 and cannot load Bundler 4.
+if [[ -x /opt/homebrew/opt/ruby/bin/bundle ]]; then
+  export PATH="/opt/homebrew/opt/ruby/bin:${PATH}"
+fi
 
 LANE="${1:-build}"
 

@@ -46,20 +46,133 @@ def build_android_aab!
   UI.user_error!("AAB not found at #{android_aab_path}") unless File.exist?(android_aab_path)
 end
 
+def play_json_key_path
+  raw = ENV["PLAY_STORE_JSON_KEY"].to_s.strip
+  return nil if raw.empty?
+  File.expand_path(raw, flutter_root)
+end
+
 def play_store_upload_options(overrides = {})
   options = {
     package_name: ENV.fetch("ANDROID_PACKAGE_NAME", "com.thcathy.earntimetoplay"),
-    metadata_path: "fastlane/metadata/android",
+    metadata_path: File.join(flutter_root, "fastlane/metadata/android"),
     skip_upload_apk: true,
     skip_upload_metadata: ENV.fetch("SKIP_UPLOAD_METADATA", "false") == "true",
     skip_upload_images: ENV.fetch("SKIP_UPLOAD_IMAGES", "true") == "true",
     skip_upload_screenshots: ENV.fetch("SKIP_UPLOAD_SCREENSHOTS", "true") == "true",
     skip_upload_changelogs: ENV.fetch("SKIP_UPLOAD_CHANGELOGS", "false") == "true",
-    validate_only: ENV.fetch("PLAY_VALIDATE_ONLY", "false") == "true"
+    validate_only: ENV.fetch("PLAY_VALIDATE_ONLY", "false") == "true",
+    changes_not_sent_for_review: ENV.fetch("PLAY_CHANGES_NOT_SENT_FOR_REVIEW", "false") == "true"
   }
-  json_key = ENV["PLAY_STORE_JSON_KEY"].to_s.strip
-  options[:json_key] = json_key unless json_key.empty?
-  options.merge(overrides)
+  json_key = play_json_key_path
+  options[:json_key] = json_key if json_key
+  merged = options.merge(overrides)
+  merged[:skip_upload_aab] = false if merged[:aab]
+  merged
+end
+
+def aab_version_info!
+  UI.user_error!("AAB missing at #{android_aab_path}") unless File.exist?(android_aab_path)
+  raw = `unzip -p "#{android_aab_path}" base/manifest/AndroidManifest.xml`.b
+  name = raw[/versionName\x1a.([\d.]+)/, 1]
+  code = raw[/versionCode\x1a.(\d+)/, 1]
+  UI.user_error!("Could not read AAB versionName/versionCode") if name.to_s.empty? || code.to_s.empty?
+  { marketing: name, build: code }
+end
+
+def preflight_play_upload!
+  spec = parse_pubspec_version!
+  aab = aab_version_info!
+  UI.message("pubspec #{spec[:marketing]}+#{spec[:build]} · AAB #{aab[:marketing]} (#{aab[:build]})")
+
+  if aab[:marketing] != spec[:marketing] || aab[:build] != spec[:build]
+    UI.user_error!(
+      "AAB #{aab[:marketing]}+#{aab[:build]} does not match pubspec #{spec[:marketing]}+#{spec[:build]}. " \
+      "Rebuild without SKIP_BUILD."
+    )
+  end
+
+  json_key = play_json_key_path
+  return unless json_key && File.exist?(json_key)
+
+  begin
+    existing = google_play_track_version_codes(
+      json_key: json_key,
+      package_name: ENV.fetch("ANDROID_PACKAGE_NAME", "com.thcathy.earntimetoplay"),
+      track: ENV.fetch("PLAY_TRACK", "internal")
+    )
+    UI.message("Play #{ENV.fetch('PLAY_TRACK', 'internal')} versionCodes: #{existing.inspect}")
+    if existing.map(&:to_i).include?(aab[:build].to_i)
+      UI.user_error!("versionCode #{aab[:build]} is already on the Play #{ENV.fetch('PLAY_TRACK', 'internal')} track")
+    end
+  rescue StandardError => e
+    UI.important("Could not read Play track version codes (#{e.message}); skipping Play compare")
+  end
+end
+
+def play_draft_app_error?(error)
+  error.message.to_s.include?("Only releases with status draft may be created on draft app")
+end
+
+def production_release_status
+  return "inProgress" unless ENV["PLAY_ROLLOUT"].to_s.strip.empty?
+  ENV.fetch("PLAY_PRODUCTION_STATUS", "completed")
+end
+
+def announce_play_release!(track, status)
+  UI.success("Play #{track} (#{status})")
+  case status
+  when "draft"
+    UI.important(
+      "Saved as draft — Google will not review yet. After the first Play Console publish, " \
+      "android release uses completed and submits for review."
+    )
+  when "completed", "inProgress"
+    UI.success("Submitted for Google review. It rolls out after approval unless Managed publishing is on.")
+  end
+end
+
+def upload_play_release!(options)
+  status = options[:release_status]
+  begin
+    upload_to_play_store(**options)
+    status
+  rescue StandardError => e
+    raise unless status != "draft" && play_draft_app_error?(e)
+
+    UI.important(
+      "Play app is still Draft, so #{status} is not allowed. Retrying as draft. " \
+      "Finish the first publish in Play Console; later android release will submit for review."
+    )
+    options = options.merge(release_status: "draft")
+    options.delete(:rollout)
+    upload_to_play_store(**options)
+    "draft"
+  end
+end
+
+def promote_play_release!
+  from_track = ENV.fetch("PLAY_PROMOTE_FROM", "internal")
+  to_track = ENV.fetch("PLAY_PROMOTE_TO", "production")
+  status = production_release_status
+  rollout = ENV["PLAY_ROLLOUT"]
+
+  version_code = ENV["PLAY_VERSION_CODE"].to_s.strip
+  version_code = parse_pubspec_version![:build] if version_code.empty?
+  UI.message("Promoting versionCode #{version_code} from #{from_track} → #{to_track} (#{status})")
+
+  options = play_store_upload_options(
+    skip_upload_aab: true,
+    track: from_track,
+    track_promote_to: to_track,
+    release_status: status,
+    version_code: version_code.to_i
+  )
+  options[:rollout] = rollout if rollout && !rollout.empty?
+
+  applied = upload_play_release!(options)
+  UI.success("Promoted #{from_track} → #{to_track} (#{applied})")
+  announce_play_release!(to_track, applied)
 end
 
 def prepare_flutter_ios!
@@ -416,12 +529,14 @@ platform :android do
   desc "Build release AAB only (no upload)"
   lane :build do
     build_android_aab!
+    preflight_play_upload!
     UI.success("AAB ready at #{android_aab_path}")
   end
 
   desc "Validate Play Store metadata + AAB (dry run, no upload)"
   lane :validate do
     build_android_aab!
+    preflight_play_upload!
     upload_to_play_store(
       **play_store_upload_options(
         aab: android_aab_path,
@@ -447,6 +562,7 @@ platform :android do
   desc "Build and upload to Google Play Internal Testing"
   lane :beta do
     build_android_aab!
+    preflight_play_upload!
     upload_to_play_store(
       **play_store_upload_options(
         aab: android_aab_path,
@@ -457,11 +573,18 @@ platform :android do
     UI.success("Uploaded to Play track: #{ENV.fetch('PLAY_TRACK', 'internal')}")
   end
 
-  desc "Build and upload to Google Play Production (metadata + AAB)"
+  desc "Promote to production and submit for review (auto-publish after Google approval unless Managed publishing is on). PLAY_UPLOAD_AAB=true builds and uploads a new AAB instead."
   lane :release do
+    unless ENV.fetch("PLAY_UPLOAD_AAB", "false") == "true"
+      UI.important("Promoting existing Play build (set PLAY_UPLOAD_AAB=true to build and upload a new AAB)")
+      promote_play_release!
+      next
+    end
+
     build_android_aab!
-    track = ENV.fetch("PLAY_TRACK", "production")
-    status = ENV.fetch("PLAY_RELEASE_STATUS", "draft")
+    preflight_play_upload!
+    track = ENV.fetch("PLAY_RELEASE_TRACK", "production")
+    status = production_release_status
     rollout = ENV["PLAY_ROLLOUT"]
 
     options = play_store_upload_options(
@@ -471,25 +594,14 @@ platform :android do
     )
     options[:rollout] = rollout if rollout && !rollout.empty?
 
-    upload_to_play_store(**options)
-    UI.success("Uploaded to Play #{track} (#{status})")
-    if status == "draft"
-      UI.important("Release saved as draft — finish review in Play Console or set PLAY_RELEASE_STATUS=completed")
-    end
+    applied = upload_play_release!(options)
+    UI.success("Uploaded to Play #{track} (#{applied})")
+    announce_play_release!(track, applied)
   end
 
   desc "Promote latest internal/closed build to production (no rebuild)"
   lane :promote do
-    upload_to_play_store(
-      **play_store_upload_options(
-        skip_upload_aab: true,
-        track: ENV.fetch("PLAY_PROMOTE_FROM", "internal"),
-        track_promote_to: ENV.fetch("PLAY_PROMOTE_TO", "production"),
-        release_status: ENV.fetch("PLAY_RELEASE_STATUS", "draft"),
-        version_code: ENV["PLAY_VERSION_CODE"]&.to_i
-      )
-    )
-    UI.success("Promoted to #{ENV.fetch('PLAY_PROMOTE_TO', 'production')}")
+    promote_play_release!
   end
 end
 

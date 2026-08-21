@@ -163,12 +163,16 @@ export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 ./build-android.sh
 ./build-android.sh beta
 ./build-android.sh release
+PLAY_UPLOAD_AAB=true ./build-android.sh release
 bundle exec fastlane android metadata
 PLAY_VALIDATE_ONLY=true bundle exec fastlane android validate
-bundle exec fastlane android promote
 ```
 
-Useful `.env` knobs: `PLAY_TRACK`, `PLAY_RELEASE_STATUS` (`draft` while the Play app is still a Draft app), `PLAY_ROLLOUT`, `SKIP_UPLOAD_*`, `SKIP_BUILD`.
+`release` promotes the latest internal (or `PLAY_PROMOTE_FROM`) build to production and **submits it for Google review** (`PLAY_PRODUCTION_STATUS=completed`). After Google approves, it publishes automatically **if Managed publishing is off** (Play Console → Publishing overview). While the Play app is still a Draft, Fastlane retries as `draft` so the first Console publish can finish by hand.
+
+Upload a new production AAB with `PLAY_UPLOAD_AAB=true`.
+
+Useful `.env` knobs: `PLAY_TRACK`, `PLAY_RELEASE_STATUS` (internal/validate), `PLAY_PRODUCTION_STATUS`, `PLAY_ROLLOUT`, `PLAY_UPLOAD_AAB`, `SKIP_UPLOAD_*`, `SKIP_BUILD`.
 
 Listing copy: `fastlane/metadata/android/` (en-US, zh-CN, zh-TW).
 
