@@ -16,7 +16,10 @@ Earn Time To Play uses a simple concept: **earn time by focusing, spend time by 
 
 ## Features
 
+- **Onboarding**: first-run walkthrough of the earn → spend loop
 - **Tracking**: quick-add entries + stopwatch for real-time Focus/Play tracking
+- **Streaks**: daily tracking streak on the Today screen to build habit
+- **Share progress**: invite friends with balance, totals, and streak
 - **History**: browse, edit, and delete past entries
 - **Analytics**: charts and stats (weekly focus vs play, balance trend, distribution)
 - **Rules**: warning threshold, optional max play/day, allow overdraft toggle
@@ -84,22 +87,94 @@ It builds `build/web`, copies `privacy-policy.html`, then deploys via Wrangler.
 
 ## Release (Mobile)
 
-This repo includes Fastlane lanes in `fastlane/Fastfile`:
+### iOS App Store (full pipeline)
+
+Fastlane can build, upload metadata, push the binary, and submit for review.
+
+**One-time setup (Mac with Xcode)**
+
+1. Create the app in [App Store Connect](https://appstoreconnect.apple.com) with bundle ID `com.thcathy.earntimetoplay` (if it does not exist yet).
+2. Create an **App Store Connect API key** (Users and Access → Integrations → App Store Connect API) with App Manager access. Download the `.p8` file.
+3. Copy env template and fill secrets:
+   ```bash
+   cp fastlane/env.example fastlane/.env
+   # set APP_STORE_CONNECT_API_KEY_ID / ISSUER_ID / KEY_PATH
+   ```
+4. Install Ruby deps (Homebrew Ruby, not macOS system Ruby 2.6):
+   ```bash
+   export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+   bundle install
+   ```
+5. **Signing (pick one)**
+   - *Automatic (default):* leave `MATCH_GIT_URL` empty; Xcode manages profiles (`-allowProvisioningUpdates`).
+   - *Match (recommended for CI):* create a private certs repo, set `MATCH_GIT_URL` + `MATCH_PASSWORD`, then:
+     ```bash
+     bundle exec fastlane ios sync_certs
+     ```
+6. **Screenshots:** first submission needs screenshots in App Store Connect, or under `fastlane/screenshots/` with `SKIP_SCREENSHOTS=false`. See `fastlane/screenshots/README.md`.
+
+**Commands**
 
 ```bash
-# Android
-fastlane android beta
-fastlane android release
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 
-# iOS
-fastlane ios build
-fastlane ios beta
-fastlane ios release
+bundle exec fastlane ios build
+./build-ios.sh
+
+bundle exec fastlane ios beta
+./build-ios.sh beta
+
+bundle exec fastlane ios release
+./build-ios.sh release
+
+SKIP_BUILD=true bundle exec fastlane ios submit
+bundle exec fastlane ios metadata
 ```
 
-Notes:
-- **Android**: while the app is still a **Draft app** in Play Console, internal uploads must use `release_status: "draft"` (already configured in `android beta`).
-- **iOS**: you must update identifiers/team/profile names in `fastlane/*` to match your Apple Developer setup if you fork this repo.
+Useful `.env` knobs: `SUBMIT_FOR_REVIEW`, `AUTOMATIC_RELEASE`, `PHASED_RELEASE`, `SKIP_SCREENSHOTS`, `SKIP_METADATA`, `SKIP_BUILD`.
+
+Store listing copy lives in `fastlane/metadata/` (en-US, zh-Hant, zh-Hans).
+
+### Android — Google Play (full pipeline)
+
+Fastlane can build a signed AAB, upload listing metadata, changelogs, and push to a Play track.
+
+**One-time setup**
+
+1. Create the app in [Google Play Console](https://play.google.com/console) with package `com.thcathy.earntimetoplay`.
+2. **Signing:** generate an upload keystore and `android/key.properties`:
+   ```bash
+   keytool -genkey -v -keystore android/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   cp android/key.properties.template android/key.properties
+   ```
+3. **Play API access:** Google Cloud → create service account → grant Play Console access (Release manager) → download JSON key as `fastlane/play-store-key.json` (see `fastlane/play-store-key.json.example`).
+4. Configure release env:
+   ```bash
+   export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+   bundle install
+   ```
+5. **Store assets:** first submission needs screenshots + feature graphic in Play Console, or under `fastlane/metadata/android/.../images/` with `SKIP_UPLOAD_SCREENSHOTS=false`.
+
+**Commands**
+
+```bash
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+
+./build-android.sh
+./build-android.sh beta
+./build-android.sh release
+PLAY_UPLOAD_AAB=true ./build-android.sh release
+bundle exec fastlane android metadata
+PLAY_VALIDATE_ONLY=true bundle exec fastlane android validate
+```
+
+`release` promotes the latest internal (or `PLAY_PROMOTE_FROM`) build to production and **submits it for Google review** (`PLAY_PRODUCTION_STATUS=completed`). After Google approves, it publishes automatically **if Managed publishing is off** (Play Console → Publishing overview). While the Play app is still a Draft, Fastlane retries as `draft` so the first Console publish can finish by hand.
+
+Upload a new production AAB with `PLAY_UPLOAD_AAB=true`.
+
+Useful `.env` knobs: `PLAY_TRACK`, `PLAY_RELEASE_STATUS` (internal/validate), `PLAY_PRODUCTION_STATUS`, `PLAY_ROLLOUT`, `PLAY_UPLOAD_AAB`, `SKIP_UPLOAD_*`, `SKIP_BUILD`.
+
+Listing copy: `fastlane/metadata/android/` (en-US, zh-CN, zh-TW).
 
 ## Secrets / signing (do not commit)
 
@@ -107,9 +182,10 @@ These are intentionally gitignored:
 - `android/key.properties`
 - `android/*.jks` (e.g. `android/upload-keystore.jks`)
 - `fastlane/play-store-key.json`
-- `*.p12`, `*.mobileprovision`, `*.cer`, `*.certSigningRequest`
+- `fastlane/.env`
+- `*.p8`, `*.p12`, `*.mobileprovision`, `*.cer`, `*.certSigningRequest`
 
-See `android/key.properties.template` for the expected format.
+See `android/key.properties.template`, `fastlane/env.example`, and `fastlane/play-store-key.json.example`.
 
 ## Project Structure
 

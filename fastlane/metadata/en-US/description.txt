@@ -1,0 +1,14 @@
+Earn Time To Play helps gamers balance productivity with entertainment.
+
+The idea is simple: earn time by focusing, spend time by playing.
+
+• Track Focus and Play with quick-add buttons or a live stopwatch
+• Keep a time bank balance — play when you have earned it
+• See daily progress, history, and analytics charts
+• Build a daily tracking streak
+• Set a warning threshold, daily play limit, and optional overdraft
+• Export your data as CSV
+• Fully local-first — your data stays on your device
+• Light/Dark mode and English / 繁體中文 / 简体中文
+
+Guilt-free gaming starts with focused minutes.

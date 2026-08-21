@@ -1,8 +1,11 @@
-# App Store Connect
-app_identifier("com.thcathy.earntimetoplay")  # Bundle ID
-apple_id("thcathy@gmail.com")                   # Your Apple ID
-team_id("DU483K8F48")                           # Developer Portal Team ID
+# App Store Connect / Apple Developer identity
+# Secrets (API key, match password, etc.) come from env — see fastlane/env.example
+
+app_identifier(ENV.fetch("APP_IDENTIFIER", "com.thcathy.earntimetoplay"))
+apple_id(ENV.fetch("APPLE_ID", "thcathy@gmail.com"))
+team_id(ENV.fetch("APPLE_TEAM_ID", "DU483K8F48"))
+itc_team_id(ENV["ITC_TEAM_ID"]) if ENV["ITC_TEAM_ID"] && !ENV["ITC_TEAM_ID"].empty?
 
 # Google Play
-json_key_file("fastlane/play-store-key.json")  # Path to Google Play API key
-package_name("com.thcathy.earntimetoplay")    # Android package name
+json_key_file(ENV.fetch("PLAY_STORE_JSON_KEY", "fastlane/play-store-key.json"))
+package_name(ENV.fetch("ANDROID_PACKAGE_NAME", "com.thcathy.earntimetoplay"))

@@ -144,6 +144,42 @@ class AppLocalizations {
   String version(String ver) => _getString('version').replaceAll('{version}', ver);
   String get copyright => _getString('copyright');
   String get madeWithLove => _getString('madeWithLove');
+
+  // Onboarding & growth
+  String get skip => _getString('skip');
+  String get next => _getString('next');
+  String get getStarted => _getString('getStarted');
+  String get onboardingEarnTitle => _getString('onboardingEarnTitle');
+  String get onboardingEarnBody => _getString('onboardingEarnBody');
+  String get onboardingSpendTitle => _getString('onboardingSpendTitle');
+  String get onboardingSpendBody => _getString('onboardingSpendBody');
+  String get onboardingStreakTitle => _getString('onboardingStreakTitle');
+  String get onboardingStreakBody => _getString('onboardingStreakBody');
+  String streakDays(int days) =>
+      _getString('streakDays').replaceAll('{days}', days.toString());
+  String get startStreak => _getString('startStreak');
+  String get keepStreakAlive => _getString('keepStreakAlive');
+  String get shareProgress => _getString('shareProgress');
+  String get shareProgressDesc => _getString('shareProgressDesc');
+  String get shareProgressHeadline => _getString('shareProgressHeadline');
+  String shareProgressStats(
+    String balance,
+    String focus,
+    String play,
+    String streak,
+  ) =>
+      _getString('shareProgressStats')
+          .replaceAll('{balance}', balance)
+          .replaceAll('{focus}', focus)
+          .replaceAll('{play}', play)
+          .replaceAll('{streak}', streak);
+  String get shareProgressCta => _getString('shareProgressCta');
+  String get inviteFriends => _getString('inviteFriends');
+  String get replayOnboarding => _getString('replayOnboarding');
+  String get replayOnboardingDesc => _getString('replayOnboardingDesc');
+  String get firstEntryTitle => _getString('firstEntryTitle');
+  String get firstEntryBody => _getString('firstEntryBody');
+  String get add15Focus => _getString('add15Focus');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
@@ -274,6 +310,35 @@ const Map<String, String> _enStrings = {
   'version': 'Version {version}',
   'copyright': '© 2025 Timmy Wong',
   'madeWithLove': 'Made with ❤️ in Flutter',
+
+  'skip': 'Skip',
+  'next': 'Next',
+  'getStarted': 'Get started',
+  'onboardingEarnTitle': 'Earn time by focusing',
+  'onboardingEarnBody':
+      'Study, work, or learn — every focused minute deposits into your time bank.',
+  'onboardingSpendTitle': 'Spend time by playing',
+  'onboardingSpendBody':
+      'Withdraw from your balance when you game. Play stays guilt-free when you have earned it.',
+  'onboardingStreakTitle': 'Build a daily streak',
+  'onboardingStreakBody':
+      'Log a little each day to keep your streak alive. Share progress and invite friends to balance with you.',
+  'streakDays': '{days}-day streak',
+  'startStreak': 'Start your streak today',
+  'keepStreakAlive': 'Log today to keep it',
+  'shareProgress': 'Share Progress',
+  'shareProgressDesc': 'Share your balance and streak with friends',
+  'shareProgressHeadline': 'I balance focus and play with Earn Time To Play',
+  'shareProgressStats':
+      'Balance: {balance} · Focus: {focus} · Play: {play} · Streak: {streak} days',
+  'shareProgressCta': 'Try it free:',
+  'inviteFriends': 'Invite Friends',
+  'replayOnboarding': 'How it works',
+  'replayOnboardingDesc': 'Replay the short intro to the earn/spend loop',
+  'firstEntryTitle': 'Make your first deposit',
+  'firstEntryBody':
+      'Log 15 minutes of focus to unlock play time and start your streak.',
+  'add15Focus': 'Add 15 min focus',
 };
 
 // Traditional Chinese strings
@@ -387,6 +452,31 @@ const Map<String, String> _zhTWStrings = {
   'version': '版本 {version}',
   'copyright': '© 2025 Timmy Wong',
   'madeWithLove': '以 ❤️ 用 Flutter 製作',
+
+  'skip': '略過',
+  'next': '下一步',
+  'getStarted': '開始使用',
+  'onboardingEarnTitle': '專注就能賺時間',
+  'onboardingEarnBody': '讀書、工作或學習——每分鐘專注都會存進你的時間銀行。',
+  'onboardingSpendTitle': '遊戲就花時間',
+  'onboardingSpendBody': '想玩遊戲時從餘額提領。賺到的時間，玩起來更安心。',
+  'onboardingStreakTitle': '建立每日連續紀錄',
+  'onboardingStreakBody': '每天記錄一點，保持連續。分享進度，邀請朋友一起平衡。',
+  'streakDays': '連續 {days} 天',
+  'startStreak': '今天開始連續紀錄',
+  'keepStreakAlive': '今天記一筆以延續',
+  'shareProgress': '分享進度',
+  'shareProgressDesc': '把餘額與連續天數分享給朋友',
+  'shareProgressHeadline': '我用「學習時間賺遊戲時間」平衡專注與娛樂',
+  'shareProgressStats':
+      '餘額：{balance} · 專注：{focus} · 遊戲：{play} · 連續：{streak} 天',
+  'shareProgressCta': '免費試試：',
+  'inviteFriends': '邀請朋友',
+  'replayOnboarding': '使用說明',
+  'replayOnboardingDesc': '重新觀看賺/花時間的簡短介紹',
+  'firstEntryTitle': '完成第一筆存入',
+  'firstEntryBody': '先記錄 15 分鐘專注，解鎖遊戲時間並開始連續紀錄。',
+  'add15Focus': '新增 15 分鐘專注',
 };
 
 // Simplified Chinese strings
@@ -500,5 +590,30 @@ const Map<String, String> _zhCNStrings = {
   'version': '版本 {version}',
   'copyright': '© 2025 Timmy Wong',
   'madeWithLove': '以 ❤️ 用 Flutter 制作',
+
+  'skip': '跳过',
+  'next': '下一步',
+  'getStarted': '开始使用',
+  'onboardingEarnTitle': '专注就能赚时间',
+  'onboardingEarnBody': '读书、工作或学习——每分钟专注都会存进你的时间银行。',
+  'onboardingSpendTitle': '游戏就花时间',
+  'onboardingSpendBody': '想玩游戏时从余额提取。赚到的时间，玩起来更安心。',
+  'onboardingStreakTitle': '建立每日连续记录',
+  'onboardingStreakBody': '每天记录一点，保持连续。分享进度，邀请朋友一起平衡。',
+  'streakDays': '连续 {days} 天',
+  'startStreak': '今天开始连续记录',
+  'keepStreakAlive': '今天记一笔以延续',
+  'shareProgress': '分享进度',
+  'shareProgressDesc': '把余额与连续天数分享给朋友',
+  'shareProgressHeadline': '我用「学习时间赚游戏时间」平衡专注与娱乐',
+  'shareProgressStats':
+      '余额：{balance} · 专注：{focus} · 游戏：{play} · 连续：{streak} 天',
+  'shareProgressCta': '免费试试：',
+  'inviteFriends': '邀请朋友',
+  'replayOnboarding': '使用说明',
+  'replayOnboardingDesc': '重新观看赚/花时间的简短介绍',
+  'firstEntryTitle': '完成第一笔存入',
+  'firstEntryBody': '先记录 15 分钟专注，解锁游戏时间并开始连续记录。',
+  'add15Focus': '添加 15 分钟专注',
 };
 

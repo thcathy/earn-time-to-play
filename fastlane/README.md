@@ -19,28 +19,20 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 [bundle exec] fastlane build_all
 ```
 
-Build all platforms
+Build iOS IPA + Android AAB (no upload)
 
 ----
 
 
 ## iOS
 
-### ios beta
+### ios sync_certs
 
 ```sh
-[bundle exec] fastlane ios beta
+[bundle exec] fastlane ios sync_certs
 ```
 
-Build and upload to App Store Connect (TestFlight)
-
-### ios release
-
-```sh
-[bundle exec] fastlane ios release
-```
-
-Build and upload to App Store (Production)
+Create/update App Store certs & profiles via match (run once / when expired)
 
 ### ios build
 
@@ -48,28 +40,44 @@ Build and upload to App Store (Production)
 [bundle exec] fastlane ios build
 ```
 
-Build iOS app only (no upload)
+Build IPA only (no upload)
+
+### ios beta
+
+```sh
+[bundle exec] fastlane ios beta
+```
+
+Build and upload to TestFlight
+
+### ios release
+
+```sh
+[bundle exec] fastlane ios release
+```
+
+Build, upload metadata + binary to App Store Connect, optionally submit for review
+
+### ios submit
+
+```sh
+[bundle exec] fastlane ios submit
+```
+
+Upload + submit for review. Builds unless SKIP_BUILD=true. SKIP_BINARY_UPLOAD=true submits the latest ASC build only.
+
+### ios metadata
+
+```sh
+[bundle exec] fastlane ios metadata
+```
+
+Upload metadata only (descriptions, privacy URL, etc.)
 
 ----
 
 
 ## Android
-
-### android beta
-
-```sh
-[bundle exec] fastlane android beta
-```
-
-Build and upload to Google Play (Internal Testing)
-
-### android release
-
-```sh
-[bundle exec] fastlane android release
-```
-
-Build and upload to Google Play (Production)
 
 ### android build
 
@@ -77,7 +85,47 @@ Build and upload to Google Play (Production)
 [bundle exec] fastlane android build
 ```
 
-Build Android app only (no upload)
+Build release AAB only (no upload)
+
+### android validate
+
+```sh
+[bundle exec] fastlane android validate
+```
+
+Validate Play Store metadata + AAB (dry run, no upload)
+
+### android metadata
+
+```sh
+[bundle exec] fastlane android metadata
+```
+
+Upload store listing metadata only (no binary)
+
+### android beta
+
+```sh
+[bundle exec] fastlane android beta
+```
+
+Build and upload to Google Play Internal Testing
+
+### android release
+
+```sh
+[bundle exec] fastlane android release
+```
+
+Promote to production and submit for review (auto-publish after Google approval unless Managed publishing is on). PLAY_UPLOAD_AAB=true builds and uploads a new AAB instead.
+
+### android promote
+
+```sh
+[bundle exec] fastlane android promote
+```
+
+Promote latest internal/closed build to production (no rebuild)
 
 ----
 

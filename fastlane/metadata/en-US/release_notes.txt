@@ -1,0 +1,4 @@
+• First-run onboarding for the earn → spend loop
+• Daily tracking streak on Today
+• Share your progress with friends
+• Polish and bug fixes

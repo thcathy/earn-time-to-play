@@ -6,8 +6,10 @@ import '../../core/theme/colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../providers/onboarding_provider.dart';
 import '../../providers/time_bank_provider.dart';
 import '../../utils/minutes_input.dart';
+import '../../utils/share_progress.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/theme_toggle.dart';
 
@@ -174,6 +176,37 @@ class SettingsScreen extends ConsumerWidget {
                       onChanged: (value) {
                         ref.read(timeBankProvider.notifier).toggleAllowOverdraft();
                       },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Growth / invite
+                  _SectionTitle(title: l10n?.inviteFriends ?? 'Invite Friends'),
+                  const SizedBox(height: 8),
+                  AppCard(
+                    margin: EdgeInsets.zero,
+                    child: Column(
+                      children: [
+                        _ActionTile(
+                          title: l10n?.shareProgress ?? 'Share Progress',
+                          subtitle: l10n?.shareProgressDesc ??
+                              'Share your balance and streak with friends',
+                          icon: LucideIcons.share2,
+                          onTap: () => ShareProgress.share(state, l10n),
+                        ),
+                        const Divider(height: 1),
+                        _ActionTile(
+                          title: l10n?.replayOnboarding ?? 'How it works',
+                          subtitle: l10n?.replayOnboardingDesc ??
+                              'Replay the short intro to the earn/spend loop',
+                          icon: LucideIcons.helpCircle,
+                          onTap: () async {
+                            await ref
+                                .read(onboardingCompletedProvider.notifier)
+                                .reset();
+                          },
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 24),

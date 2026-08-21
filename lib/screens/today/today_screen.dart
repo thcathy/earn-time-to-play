@@ -6,6 +6,7 @@ import '../../core/theme/colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/time_bank_provider.dart';
 import '../../utils/minutes_input.dart';
+import '../../utils/share_progress.dart';
 import '../../utils/time_utils.dart';
 import '../../widgets/balance_display.dart';
 import '../../widgets/time_entry_button.dart';
@@ -13,6 +14,7 @@ import '../../widgets/theme_toggle.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/stopwatch_timer.dart';
+import '../../widgets/streak_chip.dart';
 
 /// Input mode for time tracking
 enum InputMode { quickAdd, stopwatch }
@@ -60,9 +62,14 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                   Text(l10n?.appTitle ?? 'Earn Time To Play'),
                 ],
               ),
-              actions: const [
-                ThemeToggle(),
-                SizedBox(width: 8),
+              actions: [
+                IconButton(
+                  tooltip: l10n?.shareProgress ?? 'Share progress',
+                  onPressed: () => ShareProgress.share(state, l10n),
+                  icon: const Icon(LucideIcons.share2, size: 20),
+                ),
+                const ThemeToggle(),
+                const SizedBox(width: 8),
               ],
             ),
 
@@ -78,6 +85,20 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                     isWarning: state.isWarning,
                     isOverdraft: state.isOverdraft,
                   ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: StreakChip(
+                      streak: state.trackingStreak,
+                      hasLoggedToday: state.hasLoggedToday,
+                    ),
+                  ),
+                  if (state.entries.isEmpty) ...[
+                    const SizedBox(height: 16),
+                    _FirstEntryHint(
+                      onQuickFocus: () =>
+                          ref.read(timeBankProvider.notifier).addFocus(15),
+                    ),
+                  ],
                   const SizedBox(height: 24),
 
                   // Today's stats
@@ -297,6 +318,52 @@ class _SectionHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Empty-state nudge so first-time users take the first focus deposit quickly.
+class _FirstEntryHint extends StatelessWidget {
+  final VoidCallback onQuickFocus;
+
+  const _FirstEntryHint({required this.onQuickFocus});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
+    final color = isDark ? AppColors.focusDark : AppColors.focusLight;
+
+    return AppCard(
+      margin: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n?.firstEntryTitle ?? 'Make your first deposit',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n?.firstEntryBody ??
+                'Log 15 minutes of focus to unlock play time and start your streak.',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.icon(
+              onPressed: onQuickFocus,
+              style: FilledButton.styleFrom(backgroundColor: color),
+              icon: const Icon(LucideIcons.plus, size: 16),
+              label: Text(l10n?.add15Focus ?? 'Add 15 min focus'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

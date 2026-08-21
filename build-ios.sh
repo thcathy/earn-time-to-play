@@ -1,40 +1,37 @@
 #!/bin/bash
 
-# Build EarnTimeToPlay for iOS App Store
-# Usage: ./build-ios.sh
+# Build / release Earn Time To Play for iOS App Store
+# Usage:
+#   ./build-ios.sh           # build IPA only (via Fastlane)
+#   ./build-ios.sh beta      # TestFlight
+#   ./build-ios.sh release   # App Store upload (+ submit if SUBMIT_FOR_REVIEW=true)
+#   ./build-ios.sh submit    # build + upload + submit for review
+#   SKIP_BUILD=true ./build-ios.sh submit   # reuse existing IPA, then upload + submit
 
-set -e  # Exit on any error
+set -euo pipefail
 
-echo "🍎 Building EarnTimeToPlay for iOS"
-echo "======================================="
+# Prefer Homebrew Ruby. macOS /usr/bin/ruby is 2.6 and cannot load Bundler 4.
+if [[ -x /opt/homebrew/opt/ruby/bin/bundle ]]; then
+  export PATH="/opt/homebrew/opt/ruby/bin:${PATH}"
+fi
 
-# Step 1: Clean
-echo ""
-echo "🧹 Cleaning previous build..."
-flutter clean
+LANE="${1:-build}"
 
-# Step 2: Get dependencies
-echo ""
-echo "📦 Getting dependencies..."
-flutter pub get
+echo "Building Earn Time To Play for iOS (lane: ${LANE})"
+echo "=================================================="
 
-# Step 3: Install pods
-echo ""
-echo "🫛 Installing CocoaPods..."
-cd ios && pod install && cd ..
+if [[ ! -f "fastlane/.env" && -f "fastlane/env.example" ]]; then
+  echo "Tip: copy fastlane/env.example → fastlane/.env and fill ASC API key / match settings."
+fi
 
-# Step 4: Build IPA
-echo ""
-echo "🔨 Building iOS release..."
-flutter build ipa --release
-
-echo ""
-echo "✅ iOS build complete!"
-echo ""
-echo "📦 Output: build/ios/ipa/EarnTimeToPlay.ipa"
-echo ""
-echo "Next steps:"
-echo "1. Open Xcode: open ios/Runner.xcworkspace"
-echo "2. Product → Archive (or use Transporter app)"
-echo "3. Upload to App Store Connect"
-echo "4. Submit for review in App Store Connect"
+if command -v bundle >/dev/null 2>&1 && [[ -f "Gemfile" ]]; then
+  bundle check >/dev/null 2>&1 || bundle install
+  bundle exec fastlane ios "${LANE}"
+else
+  echo "bundle/Gemfile not available — falling back to flutter build ipa"
+  flutter pub get
+  (cd ios && pod install)
+  flutter build ipa --release
+  echo "Output: build/ios/ipa/*.ipa"
+  echo "Upload with Transporter or: bundle exec fastlane ios beta"
+fi
