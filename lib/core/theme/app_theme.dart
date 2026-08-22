@@ -8,19 +8,30 @@ class AppTheme {
 
   static final _baseTextTheme = GoogleFonts.interTextTheme();
 
+  static const SystemUiOverlayStyle lightSystemUi = SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    statusBarBrightness: Brightness.light,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.dark,
+    systemNavigationBarContrastEnforced: false,
+    systemStatusBarContrastEnforced: false,
+  );
+
+  static const SystemUiOverlayStyle darkSystemUi = SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.light,
+    systemNavigationBarContrastEnforced: false,
+    systemStatusBarContrastEnforced: false,
+  );
+
   static SystemUiOverlayStyle systemUiFor(Brightness brightness) {
-    final isDark = brightness == Brightness.dark;
-    return SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarDividerColor: Colors.transparent,
-      systemNavigationBarIconBrightness:
-          isDark ? Brightness.light : Brightness.dark,
-      systemNavigationBarContrastEnforced: false,
-      systemStatusBarContrastEnforced: false,
-    );
+    return brightness == Brightness.dark ? darkSystemUi : lightSystemUi;
   }
 
   /// Light theme - warm, clean, peaceful
@@ -151,7 +162,7 @@ class AppTheme {
       foregroundColor: AppColors.lightText,
       elevation: 0,
       centerTitle: true,
-      systemOverlayStyle: systemUiFor(Brightness.light),
+      systemOverlayStyle: lightSystemUi,
       titleTextStyle: _baseTextTheme.titleLarge?.copyWith(
         color: AppColors.lightText,
         fontWeight: FontWeight.w600,
@@ -305,7 +316,7 @@ class AppTheme {
       foregroundColor: AppColors.darkText,
       elevation: 0,
       centerTitle: true,
-      systemOverlayStyle: systemUiFor(Brightness.dark),
+      systemOverlayStyle: darkSystemUi,
       titleTextStyle: _baseTextTheme.titleLarge?.copyWith(
         color: AppColors.darkText,
         fontWeight: FontWeight.w600,
