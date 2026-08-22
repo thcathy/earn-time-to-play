@@ -1,0 +1,3 @@
+• Minute fields now cap at three digits
+• Stops a long number from being entered at once
+• Android 15: keep content clear of the status and navigation bars
