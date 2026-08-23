@@ -8,6 +8,10 @@ class AppConstants {
   static const String themeKey = 'theme_mode';
   static const String onboardingCompletedKey = 'onboarding_completed';
 
+  // Lock-screen / ongoing timer notification
+  static const int lockScreenTimerNotificationId = 1001;
+  static const String lockScreenTimerChannelId = 'lock_screen_timer';
+
   // Growth / acquisition
   static const String webAppUrl = 'https://earn-time-to-play.pages.dev';
   static const String githubUrl = 'https://github.com/thcathy/earn-time-to-play';

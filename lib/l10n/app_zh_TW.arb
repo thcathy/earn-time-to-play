@@ -28,6 +28,8 @@
   
   "focusTimer": "專注計時器",
   "playTimer": "遊戲計時器",
+  "lockScreenTimerChannelName": "計時器",
+  "lockScreenTimerChannelDescription": "在鎖定畫面顯示專注或遊戲經過時間",
   "start": "開始",
   "stop": "停止",
   "reset": "重置",

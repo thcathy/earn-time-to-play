@@ -31,6 +31,8 @@
   
   "focusTimer": "Focus Timer",
   "playTimer": "Play Timer",
+  "lockScreenTimerChannelName": "Timer",
+  "lockScreenTimerChannelDescription": "Shows elapsed Focus or Play time on the lock screen",
   "start": "Start",
   "stop": "Stop",
   "reset": "Reset",

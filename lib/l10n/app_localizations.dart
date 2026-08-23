@@ -79,6 +79,22 @@ class AppLocalizations {
   String get tooShortMessage => _getString('tooShortMessage');
   String get focusTimerRunning => _getString('focusTimerRunning');
   String get playTimerRunning => _getString('playTimerRunning');
+  String get lockScreenTimerChannelName => _getString('lockScreenTimerChannelName');
+  String get lockScreenTimerChannelDescription =>
+      _getString('lockScreenTimerChannelDescription');
+
+  /// Resolve strings without a [BuildContext] (e.g. lock-screen notifications).
+  static AppLocalizations fromLocaleCode(String? code) {
+    if (code == null || code.isEmpty || code == 'system') {
+      final locale = WidgetsBinding.instance.platformDispatcher.locale;
+      return AppLocalizations(locale);
+    }
+    if (code.contains('_')) {
+      final parts = code.split('_');
+      return AppLocalizations(Locale(parts[0], parts[1]));
+    }
+    return AppLocalizations(Locale(code));
+  }
   
   String get thisWeek => _getString('thisWeek');
   String get thisMonth => _getString('thisMonth');
@@ -245,6 +261,9 @@ const Map<String, String> _enStrings = {
   'tooShortMessage': 'You need at least 1 minute to log time. Keep going!',
   'focusTimerRunning': 'Focus timer is running',
   'playTimerRunning': 'Play timer is running',
+  'lockScreenTimerChannelName': 'Timer',
+  'lockScreenTimerChannelDescription':
+      'Shows elapsed Focus or Play time on the lock screen',
   
   'thisWeek': 'This Week',
   'thisMonth': 'This Month',
@@ -387,6 +406,8 @@ const Map<String, String> _zhTWStrings = {
   'tooShortMessage': '需要至少 1 分鐘才能記錄時間。繼續加油！',
   'focusTimerRunning': '專注計時器運行中',
   'playTimerRunning': '遊戲計時器運行中',
+  'lockScreenTimerChannelName': '計時器',
+  'lockScreenTimerChannelDescription': '在鎖定畫面顯示專注或遊戲經過時間',
   
   'thisWeek': '本週',
   'thisMonth': '本月',
@@ -525,6 +546,8 @@ const Map<String, String> _zhCNStrings = {
   'tooShortMessage': '需要至少 1 分钟才能记录时间。继续加油！',
   'focusTimerRunning': '专注计时器运行中',
   'playTimerRunning': '游戏计时器运行中',
+  'lockScreenTimerChannelName': '计时器',
+  'lockScreenTimerChannelDescription': '在锁定屏幕显示专注或游戏经过时间',
   
   'thisWeek': '本周',
   'thisMonth': '本月',

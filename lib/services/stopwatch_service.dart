@@ -16,11 +16,24 @@ class StopwatchState {
   });
 
   /// Calculate total elapsed milliseconds
-  int get elapsedMilliseconds {
+  int get elapsedMilliseconds => elapsedAt();
+
+  /// Elapsed milliseconds at [now] (defaults to the current time).
+  int elapsedAt([DateTime? now]) {
+    final t = now ?? DateTime.now();
     if (!isRunning || startTime == null) {
       return accumulatedMs;
     }
-    return accumulatedMs + DateTime.now().difference(startTime!).inMilliseconds;
+    return accumulatedMs + t.difference(startTime!).inMilliseconds;
+  }
+
+  /// Epoch millis for Android's notification chronometer.
+  ///
+  /// The system draws `(now - when)`, so this is `now - elapsed`. Using a
+  /// timestamp in the past lets resume continue from accumulated time.
+  int chronometerWhenMillis([DateTime? now]) {
+    final t = now ?? DateTime.now();
+    return t.millisecondsSinceEpoch - elapsedAt(t);
   }
 
   /// Convert to JSON for storage

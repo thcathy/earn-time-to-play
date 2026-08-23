@@ -18,6 +18,7 @@ Earn Time To Play uses a simple concept: **earn time by focusing, spend time by 
 
 - **Onboarding**: first-run walkthrough of the earn → spend loop
 - **Tracking**: quick-add entries + stopwatch for real-time Focus/Play tracking
+- **Lock-screen timer**: while a stopwatch is running, elapsed time stays visible on the lock screen (Android chronometer; iOS time-sensitive notification)
 - **Streaks**: daily tracking streak on the Today screen to build habit
 - **Share progress**: invite friends with balance, totals, and streak
 - **History**: browse, edit, and delete past entries

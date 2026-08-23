@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _localeKey = 'app_locale';
+const localePreferenceKey = 'app_locale';
 
 /// Supported locales
 enum AppLocale {
@@ -37,14 +37,14 @@ class LocaleNotifier extends StateNotifier<AppLocale> {
 
   Future<void> _loadLocale() async {
     final prefs = await SharedPreferences.getInstance();
-    final code = prefs.getString(_localeKey) ?? 'system';
+    final code = prefs.getString(localePreferenceKey) ?? 'system';
     state = AppLocale.fromCode(code);
   }
 
   Future<void> setLocale(AppLocale locale) async {
     state = locale;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_localeKey, locale.code);
+    await prefs.setString(localePreferenceKey, locale.code);
   }
 }
 
