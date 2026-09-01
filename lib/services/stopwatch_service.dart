@@ -27,6 +27,8 @@ class StopwatchState {
     return accumulatedMs + t.difference(startTime!).inMilliseconds;
   }
 
+  bool get isPlay => mode == 'play';
+
   /// Epoch millis for Android's notification chronometer.
   ///
   /// The system draws `(now - when)`, so this is `now - elapsed`. Using a

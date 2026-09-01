@@ -22,6 +22,11 @@ void main() {
       );
       expect(state.elapsedAt(start.add(const Duration(minutes: 2))), 150 * 1000);
     });
+
+    test('isPlay follows mode', () {
+      expect(StopwatchState(mode: 'play').isPlay, isTrue);
+      expect(StopwatchState(mode: 'focus').isPlay, isFalse);
+    });
   });
 
   group('StopwatchState.chronometerWhenMillis', () {

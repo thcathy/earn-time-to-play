@@ -28,7 +28,7 @@ class TodayScreen extends ConsumerStatefulWidget {
 }
 
 class _TodayScreenState extends ConsumerState<TodayScreen> {
-  InputMode _inputMode = InputMode.quickAdd;
+  InputMode _inputMode = InputMode.stopwatch;
 
   @override
   Widget build(BuildContext context) {

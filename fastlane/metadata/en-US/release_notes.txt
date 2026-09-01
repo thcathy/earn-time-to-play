@@ -1,2 +1,2 @@
-• Minute fields now cap at three digits
-• Stops a long number from being entered at once
+• See elapsed Focus or Play time on the Lock Screen and Dynamic Island
+• Today opens on Stopwatch so you can start tracking right away

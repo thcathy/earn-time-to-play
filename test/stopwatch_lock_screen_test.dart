@@ -57,6 +57,21 @@ void main() {
       expect(lockScreen.calls.last.isRunning, isTrue);
       expect(lockScreen.calls.last.mode, 'play');
     });
+
+    test('reload re-syncs persisted state', () async {
+      final lockScreen = _RecordingLockScreenTimer();
+      final notifier = StopwatchNotifier(lockScreenTimer: lockScreen);
+      await notifier.initialized;
+      await notifier.start('focus');
+      lockScreen.calls.clear();
+
+      await StopwatchService.pause(notifier.state);
+      await notifier.reload();
+
+      expect(lockScreen.calls, isNotEmpty);
+      expect(lockScreen.calls.last.isRunning, isFalse);
+      expect(lockScreen.calls.last.mode, 'focus');
+    });
   });
 
   group('LockScreenTimerService platform support', () {

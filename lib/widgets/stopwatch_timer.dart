@@ -61,8 +61,6 @@ class _StopwatchTimerState extends ConsumerState<StopwatchTimer>
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
     if (lifecycleState == AppLifecycleState.resumed) {
-      // App coming back - reload state to get accurate time
-      ref.read(stopwatchProvider.notifier).reload();
       final state = ref.read(stopwatchProvider);
       if (state.isRunning) {
         _startUIUpdates();

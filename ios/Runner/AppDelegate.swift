@@ -19,5 +19,19 @@ import flutter_local_notifications
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    let channel = FlutterMethodChannel(
+      name: "com.thcathy.earntimetoplay/live_activity",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "start":
+        TimerLiveActivityManager.start(arguments: call.arguments, result: { result($0) })
+      case "end":
+        TimerLiveActivityManager.end { result($0) }
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 }

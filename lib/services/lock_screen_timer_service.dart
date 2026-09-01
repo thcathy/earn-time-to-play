@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants.dart';
@@ -16,8 +17,8 @@ abstract class LockScreenTimer {
 ///
 /// On Android this is an ongoing chronometer (native lock-screen timer) backed
 /// by a foreground service so it survives the app moving to the background.
-/// On iOS it is a time-sensitive notification; a counting Live Activity would
-/// need a Widget Extension and is left as a follow-up.
+/// On iOS this starts a Live Activity (lock screen + Dynamic Island) and falls
+/// back to a time-sensitive notification if Live Activities are unavailable.
 class LockScreenTimerService implements LockScreenTimer {
   LockScreenTimerService({
     FlutterLocalNotificationsPlugin? plugin,
@@ -26,10 +27,17 @@ class LockScreenTimerService implements LockScreenTimer {
         _resolveL10n = resolveL10n ?? _l10nFromPrefs;
 
   static final LockScreenTimerService instance = LockScreenTimerService();
+  static const _liveActivityChannel = MethodChannel(
+    'com.thcathy.earntimetoplay/live_activity',
+  );
+  static const _initTimeout = Duration(seconds: 5);
+  static const _channelTimeout = Duration(seconds: 3);
 
   final FlutterLocalNotificationsPlugin _plugin;
   final Future<AppLocalizations> Function() _resolveL10n;
   bool _initialized = false;
+  StopwatchState? _queued;
+  Future<void> _syncChain = Future.value();
 
   static bool get isSupported {
     if (kIsWeb) return false;
@@ -53,9 +61,11 @@ class LockScreenTimerService implements LockScreenTimer {
     );
 
     try {
-      await _plugin.initialize(
-        const InitializationSettings(android: android, iOS: darwin),
-      );
+      await _plugin
+          .initialize(
+            const InitializationSettings(android: android, iOS: darwin),
+          )
+          .timeout(_initTimeout);
       _initialized = true;
     } catch (e) {
       debugPrint('LockScreenTimerService.initialize failed: $e');
@@ -65,20 +75,61 @@ class LockScreenTimerService implements LockScreenTimer {
   @override
   Future<void> sync(StopwatchState state) async {
     if (!isSupported) return;
-    await initialize();
-    if (!_initialized) return;
+    _queued = state;
+    final previous = _syncChain;
+    _syncChain = () async {
+      try {
+        await previous;
+      } catch (_) {}
+      await _flush();
+    }();
+    await _syncChain;
+  }
 
+  Future<void> _flush() async {
+    while (_queued != null) {
+      final next = _queued!;
+      _queued = null;
+      try {
+        await _apply(next);
+      } catch (e) {
+        debugPrint('LockScreenTimerService.sync failed: $e');
+      }
+    }
+  }
+
+  Future<void> _apply(StopwatchState state) async {
     if (!state.isRunning) {
-      await hide();
+      await _dismiss();
       return;
     }
+
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final l10n = await _resolveL10n();
+      final started = await _startLiveActivity(
+        mode: state.mode,
+        title: state.isPlay ? l10n.playTimer : l10n.focusTimer,
+        startedAtMillis: state.chronometerWhenMillis(),
+      );
+      if (started) {
+        await _cancelNotification();
+        return;
+      }
+    }
+
+    await initialize();
+    if (!_initialized) return;
 
     await _requestPermission();
     await _show(state);
   }
 
-  Future<void> hide() async {
-    if (!isSupported || !_initialized) return;
+  Future<void> _dismiss() async {
+    if (!isSupported) return;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      await _endLiveActivity();
+    }
+    if (!_initialized) return;
     try {
       if (defaultTargetPlatform == TargetPlatform.android) {
         await _plugin
@@ -89,10 +140,46 @@ class LockScreenTimerService implements LockScreenTimer {
     } catch (e) {
       debugPrint('LockScreenTimerService.stopForegroundService failed: $e');
     }
+    await _cancelNotification();
+  }
+
+  Future<void> _cancelNotification() async {
+    if (!_initialized) return;
     try {
       await _plugin.cancel(AppConstants.lockScreenTimerNotificationId);
     } catch (e) {
       debugPrint('LockScreenTimerService.cancel failed: $e');
+    }
+  }
+
+  Future<bool> _startLiveActivity({
+    required String mode,
+    required String title,
+    required int startedAtMillis,
+  }) async {
+    try {
+      final started = await _liveActivityChannel.invokeMethod<bool>(
+        'start',
+        {
+          'mode': mode,
+          'title': title,
+          'startedAtMillis': startedAtMillis,
+        },
+      ).timeout(_channelTimeout);
+      return started == true;
+    } catch (e) {
+      debugPrint('LockScreenTimerService.liveActivity start failed: $e');
+      return false;
+    }
+  }
+
+  Future<void> _endLiveActivity() async {
+    try {
+      await _liveActivityChannel
+          .invokeMethod<bool>('end')
+          .timeout(_channelTimeout);
+    } catch (e) {
+      debugPrint('LockScreenTimerService.liveActivity end failed: $e');
     }
   }
 
@@ -116,10 +203,9 @@ class LockScreenTimerService implements LockScreenTimer {
 
   Future<void> _show(StopwatchState state) async {
     final l10n = await _resolveL10n();
-    final isPlay = state.mode == 'play';
-    final title = isPlay ? l10n.playTimer : l10n.focusTimer;
-    final body = isPlay ? l10n.playTimerRunning : l10n.focusTimerRunning;
-    final color = isPlay ? AppColors.playLight : AppColors.focusLight;
+    final title = state.isPlay ? l10n.playTimer : l10n.focusTimer;
+    final body = state.isPlay ? l10n.playTimerRunning : l10n.focusTimerRunning;
+    final color = state.isPlay ? AppColors.playLight : AppColors.focusLight;
     final when = state.chronometerWhenMillis();
 
     final androidDetails = AndroidNotificationDetails(
@@ -160,8 +246,8 @@ class LockScreenTimerService implements LockScreenTimer {
       iOS: darwinDetails,
     );
 
-    try {
-      if (defaultTargetPlatform == TargetPlatform.android) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      try {
         final android = _plugin.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
         if (android != null) {
@@ -177,8 +263,12 @@ class LockScreenTimerService implements LockScreenTimer {
           );
           return;
         }
+      } catch (e) {
+        debugPrint('LockScreenTimerService.show failed: $e');
       }
+    }
 
+    try {
       await _plugin.show(
         AppConstants.lockScreenTimerNotificationId,
         title,
@@ -187,18 +277,6 @@ class LockScreenTimerService implements LockScreenTimer {
       );
     } catch (e) {
       debugPrint('LockScreenTimerService.show failed: $e');
-      try {
-        await _plugin.show(
-          AppConstants.lockScreenTimerNotificationId,
-          title,
-          body,
-          details,
-        );
-      } catch (fallbackError) {
-        debugPrint(
-          'LockScreenTimerService.show fallback failed: $fallbackError',
-        );
-      }
     }
   }
 
