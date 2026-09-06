@@ -126,7 +126,7 @@ bundle exec fastlane ios beta
 ./build-ios.sh beta
 
 bundle exec fastlane ios release
-./build-ios.sh release
+./build-ios.sh release   # upload + submit for review (SUBMIT_FOR_REVIEW=false to skip)
 
 SKIP_BUILD=true bundle exec fastlane ios submit
 bundle exec fastlane ios metadata

@@ -4,7 +4,7 @@
 # Usage:
 #   ./build-ios.sh           # build IPA only (via Fastlane)
 #   ./build-ios.sh beta      # TestFlight
-#   ./build-ios.sh release   # App Store upload (+ submit if SUBMIT_FOR_REVIEW=true)
+#   ./build-ios.sh release   # App Store upload + submit for review
 #   ./build-ios.sh submit    # build + upload + submit for review
 #   SKIP_BUILD=true ./build-ios.sh submit   # reuse existing IPA, then upload + submit
 
